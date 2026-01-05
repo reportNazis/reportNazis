@@ -1,0 +1,62 @@
+version: '3.8'
+
+services:
+  gateway:
+    image: nginx:alpine
+    ports:
+      - "80:80"
+    volumes:
+      - ./gateway/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./frontend-workspace/dist/frontend-user:/usr/share/nginx/html/user:ro
+      - ./frontend-workspace/dist/frontend-admin:/usr/share/nginx/html/admin:ro
+    depends_on:
+      - form-service
+      - management-service
+      - log-service
+      - zitadel
+
+  # Auth Service (Zitadel) - Standard Setup
+  # Note: A real production setup requires a DB (CockroachDB or Postgres). 
+  # Using a minimal in-memory/dev setup if possible or full stack otherwise. 
+  # Including CockroachDB as standard backend for Zitadel.
+  crdb:
+    image: cockroachdb/cockroach:latest-v22.2
+    command: start-single-node --insecure
+    volumes:
+      - zitadel-data:/cockroach/cockroach-data
+
+  zitadel:
+    image: zitadel/zitadel:latest
+    command: start-from-init --masterkey "MasterkeyNeedsTo be32bytesLong" --tlsMode external
+    environment:
+      - ZITADEL_DATABASE_COCKROACH_HOST=crdb
+      - ZITADEL_EXTERALSECURE=false
+    ports:
+      - "8080:8080"
+    depends_on:
+      - crdb
+
+  form-service:
+    build: ./form-service
+    environment:
+      - PORT=3000
+    deploy:
+      replicas: 1
+
+  management-service:
+    build: ./management-service
+    environment:
+      - PORT=3000
+      - ZITADEL_ISSUER=http://zitadel:8080
+    deploy:
+      replicas: 1
+
+  log-service:
+    build: ./log-service
+    environment:
+      - PORT=3000
+    deploy:
+      replicas: 1
+
+volumes:
+  zitadel-data:

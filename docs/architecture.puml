@@ -1,0 +1,52 @@
+@startuml
+!theme plain
+
+actor "User (Mobile)" as User
+actor "Admin (Desktop)" as Admin
+
+node "Gateway (Nginx)" as Gateway {
+  [Reverse Proxy]
+  [UUID Injection (X-Trace-ID)]
+}
+
+component "Auth Provider" as Zitadel {
+  [OIDC / OAuth2]
+  [User Directory]
+}
+
+package "Backend Services" {
+  component "Management Service" as Mgmt
+  component "Form Service" as Forms
+  component "Log Service" as Logs
+}
+
+package "Frontend Workspace" {
+  component "Frontend User App" as FE_User
+  component "Frontend Admin App" as FE_Admin
+  component "Shared Lib" as Shared
+}
+
+User --> Gateway : HTTPS
+Admin --> Gateway : HTTPS
+
+Gateway --> FE_User : Serve Static
+Gateway --> FE_Admin : Serve Static
+Gateway --> Zitadel : Auth Requests
+Gateway --> Mgmt : /api/mgmt
+Gateway --> Forms : /api/forms
+Gateway --> Logs : /api/logs
+
+FE_User ..> Shared : Uses
+FE_Admin ..> Shared : Uses
+
+Shared --> Zitadel : OIDC Auth
+Mgmt --> Zitadel : User Invite/Sync API (Machine-to-Machine)
+
+Mgmt ..> Logs : Logs (Async/Http)
+Forms ..> Logs : Logs (Async/Http)
+
+note right of Gateway
+  Adds X-Trace-ID to all incoming requests
+end note
+
+@enduml
