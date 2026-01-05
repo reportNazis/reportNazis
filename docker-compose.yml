@@ -15,48 +15,149 @@ services:
       - log-service
       - zitadel
 
-  # Auth Service (Zitadel) - Standard Setup
-  # Note: A real production setup requires a DB (CockroachDB or Postgres). 
-  # Using a minimal in-memory/dev setup if possible or full stack otherwise. 
-  # Including CockroachDB as standard backend for Zitadel.
-  crdb:
-    image: cockroachdb/cockroach:latest-v22.2
-    command: start-single-node --insecure
-    volumes:
-      - zitadel-data:/cockroach/cockroach-data
-
+  # --- ZITADEL SERVICES (Integrated from Official Docs) ---
   zitadel:
-    image: zitadel/zitadel:latest
-    command: start-from-init --masterkey "MasterkeyNeedsTo be32bytesLong" --tlsMode external
+    restart: unless-stopped
+    image: ghcr.io/zitadel/zitadel:latest
+    command: start-from-init --masterkey "MasterkeyNeedsToHave32Characters"
     environment:
-      - ZITADEL_DATABASE_COCKROACH_HOST=crdb
-      - ZITADEL_EXTERALSECURE=false
+      ZITADEL_EXTERNALDOMAIN: localhost
+      ZITADEL_EXTERNALSECURE: "false"
+      ZITADEL_TLS_ENABLED: "false"
+
+      # Database connection settings
+      ZITADEL_DATABASE_POSTGRES_HOST: zitadel-db
+      ZITADEL_DATABASE_POSTGRES_PORT: 5432
+      ZITADEL_DATABASE_POSTGRES_DATABASE: zitadel
+      ZITADEL_DATABASE_POSTGRES_ADMIN_USERNAME: postgres
+      ZITADEL_DATABASE_POSTGRES_ADMIN_PASSWORD: postgres
+      ZITADEL_DATABASE_POSTGRES_ADMIN_SSL_MODE: disable
+      ZITADEL_DATABASE_POSTGRES_USER_USERNAME: zitadel
+      ZITADEL_DATABASE_POSTGRES_USER_PASSWORD: zitadel
+      ZITADEL_DATABASE_POSTGRES_USER_SSL_MODE: disable
+
+      # Login Client PAT Setup
+      ZITADEL_FIRSTINSTANCE_LOGINCLIENTPATPATH: /current-dir/login-client.pat
+      ZITADEL_FIRSTINSTANCE_ORG_HUMAN_PASSWORDCHANGEREQUIRED: "false"
+      ZITADEL_FIRSTINSTANCE_ORG_LOGINCLIENT_MACHINE_USERNAME: login-client
+      ZITADEL_FIRSTINSTANCE_ORG_LOGINCLIENT_MACHINE_NAME: Automatically Initialized IAM_LOGIN_CLIENT
+      ZITADEL_FIRSTINSTANCE_ORG_LOGINCLIENT_PAT_EXPIRATIONDATE: '2029-01-01T00:00:00Z'
+
+      # Login V2 Configuration
+      ZITADEL_DEFAULTINSTANCE_FEATURES_LOGINV2_REQUIRED: "true"
+      ZITADEL_DEFAULTINSTANCE_FEATURES_LOGINV2_BASEURI: http://localhost:3000/ui/v2/login
+      ZITADEL_OIDC_DEFAULTLOGINURLV2: http://localhost:3000/ui/v2/login/login?authRequest=
+      ZITADEL_OIDC_DEFAULTLOGOUTURLV2: http://localhost:3000/ui/v2/login/logout?post_logout_redirect=
+      ZITADEL_SAML_DEFAULTLOGINURLV2: http://localhost:3000/ui/v2/login/login?samlRequest=
+
+    healthcheck:
+      test: [ "CMD", "/app/zitadel", "ready" ]
+      interval: 10s
+      timeout: 60s
+      retries: 5
+      start_period: 10s
+    volumes:
+      - .:/current-dir:delegated
     ports:
       - "8080:8080"
+      - "3000:3000"
+    networks:
+      - default
     depends_on:
-      - crdb
+      zitadel-db:
+        condition: service_healthy
+
+  login:
+    restart: unless-stopped
+    image: ghcr.io/zitadel/zitadel-login:latest
+    environment:
+      - ZITADEL_API_URL=http://localhost:8080
+      - NEXT_PUBLIC_BASE_PATH=/ui/v2/login
+      - ZITADEL_SERVICE_USER_TOKEN_FILE=/current-dir/login-client.pat
+    network_mode: service:zitadel
+    volumes:
+      - .:/current-dir:ro
+    depends_on:
+      zitadel:
+        condition: service_healthy
+
+  zitadel-db:
+    restart: unless-stopped
+    image: postgres:17
+    environment:
+      PGUSER: postgres
+      POSTGRES_PASSWORD: postgres
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -d zitadel -U postgres" ]
+      interval: 10s
+      timeout: 30s
+      retries: 5
+      start_period: 20s
+    ports:
+      - "5432:5432"
+    volumes:
+      - zitadel-data:/var/lib/postgresql/data
+    networks:
+      - default
+
+  # --- APPLICATION SERVICES ---
+
+  # Database for Application Data (Forms, Invites)
+  app-db:
+    image: postgres:15-alpine
+    environment:
+      - POSTGRES_USER=visine
+      - POSTGRES_PASSWORD=visine
+      - POSTGRES_DB=visine_db
+    volumes:
+      - app-db-data:/var/lib/postgresql/data
+    ports:
+      - "5433:5432" # Mapped to 5433 to avoid conflict with Zitadel DB
 
   form-service:
-    build: ./form-service
+    build:
+      context: .
+      dockerfile: ./form-service/Dockerfile
     environment:
-      - PORT=3000
+      - PORT=8000
+      - DB_HOST=app-db
+      - DB_NAME=visine_db
+      - DB_USER=visine
+      - DB_PASSWORD=visine
+    depends_on:
+      - app-db
     deploy:
       replicas: 1
 
   management-service:
-    build: ./management-service
+    build:
+      context: .
+      dockerfile: ./management-service/Dockerfile
     environment:
-      - PORT=3000
+      - PORT=8000
+      - DB_HOST=app-db
+      - DB_NAME=visine_db
+      - DB_USER=visine
+      - DB_PASSWORD=visine
       - ZITADEL_ISSUER=http://zitadel:8080
+    depends_on:
+      - app-db
     deploy:
       replicas: 1
 
   log-service:
-    build: ./log-service
+    build:
+      context: .
+      dockerfile: ./log-service/Dockerfile
     environment:
-      - PORT=3000
+      - PORT=8000
     deploy:
       replicas: 1
 
 volumes:
   zitadel-data:
+  app-db-data:
+
+
+networks:
+  default:
