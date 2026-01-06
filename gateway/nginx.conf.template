@@ -27,6 +27,10 @@ http {
         }
 
         # Frontend Admin App
+        location = /admin {
+            return 301 $scheme://$http_host/admin/;
+        }
+
         location /admin/ {
             # Match the artifact folder name: frontend-admin
             alias /usr/share/nginx/html/frontend-admin/;
