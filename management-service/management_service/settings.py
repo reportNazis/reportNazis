@@ -18,6 +18,7 @@ INSTALLED_APPS = [
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
+    'whitenoise.middleware.WhiteNoiseMiddleware',
     'django.middleware.common.CommonMiddleware',
     'visine_common.middleware.TracingMiddleware',
 ]
@@ -38,6 +39,15 @@ DATABASES = {
         'HOST': DB_HOST,
         'PORT': '5432',
     }
+}
+
+# Static files (CSS, JavaScript, Images)
+STATIC_URL = 'static/'
+STATIC_ROOT = BASE_DIR / 'staticfiles'
+STORAGES = {
+    "staticfiles": {
+        "BACKEND": "whitenoise.storage.CompressedManifestStaticFilesStorage",
+    },
 }
 
 LANGUAGE_CODE = 'en-us'

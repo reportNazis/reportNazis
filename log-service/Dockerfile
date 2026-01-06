@@ -19,4 +19,4 @@ RUN pip install -r requirements.txt
 COPY log-service /app
 
 # Run Server
-CMD ["python", "manage.py", "runserver", "0.0.0.0:8000"]
+CMD sh -c "python manage.py runserver 0.0.0.0:$PORT"

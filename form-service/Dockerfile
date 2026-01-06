@@ -19,5 +19,5 @@ RUN pip install -r requirements.txt
 # Copy Service Code
 COPY form-service /app
 
-# Run Server
-CMD ["python", "manage.py", "runserver", "0.0.0.0:8000"]
+# Run Server using Shell form to expand $PORT
+CMD sh -c "python manage.py runserver 0.0.0.0:$PORT"

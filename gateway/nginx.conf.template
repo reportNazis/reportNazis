@@ -1,0 +1,65 @@
+events {
+    worker_connections 1024;
+}
+
+http {
+    include       mime.types;
+    default_type  application/octet-stream;
+
+    # UUID Injection via request_id
+    map $http_x_trace_id $trace_id {
+        default $http_x_trace_id;
+        ""      $request_id;
+    }
+
+    server {
+        listen 80;
+
+        # Add X-Trace-ID header to all responses for debugging
+        add_header X-Trace-ID $trace_id always;
+
+        # Frontend User App
+        location / {
+            # Match the artifact folder name: frontend-user
+            root /usr/share/nginx/html/frontend-user;
+            # Fallback to index.html
+            try_files $uri $uri/ /index.html;
+        }
+
+        # Frontend Admin App
+        location /admin {
+            # Match the artifact folder name: frontend-admin
+            alias /usr/share/nginx/html/frontend-admin;
+            try_files $uri $uri/ /index.html;
+        }
+
+        # Management Service API
+        location /api/mgmt/ {
+            # Use strict variable for port
+            proxy_pass http://management-service:${SERVICE_PORT};
+            proxy_set_header X-Trace-ID $trace_id;
+            proxy_set_header Host $host;
+        }
+
+        # Form Service API
+        location /api/forms/ {
+            proxy_pass http://form-service:${SERVICE_PORT};
+            proxy_set_header X-Trace-ID $trace_id;
+            proxy_set_header Host $host;
+        }
+
+        # Log Service API
+        location /api/logs/ {
+            proxy_pass http://log-service:${SERVICE_PORT};
+            proxy_set_header X-Trace-ID $trace_id;
+            proxy_set_header Host $host;
+        }
+
+        # Authentication (Zitadel)
+        location /auth/ {
+            proxy_pass http://zitadel:${ZITADEL_PORT}/;
+            proxy_set_header Host $host;
+            proxy_set_header X-Trace-ID $trace_id;
+        }
+    }
+}

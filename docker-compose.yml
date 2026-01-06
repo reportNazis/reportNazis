@@ -1,54 +1,71 @@
 version: '3.8'
 
 services:
+  # Builder Service to compile Angular
+  frontend-builder:
+    build:
+      context: .
+      dockerfile: ./frontend-workspace/Dockerfile
+    volumes:
+      - frontend-dist:/output
+    # Copy built artifacts from image (/app/dist) to volume (/output)
+    command: /bin/sh -c "cp -r /app/dist/* /output/"
+
   gateway:
     image: nginx:alpine
     ports:
-      - "80:80"
+      - "${GATEWAY_PORT}:80"
+    environment:
+      - SERVICE_PORT=${SERVICE_PORT}
+      - ZITADEL_PORT=${ZITADEL_PORT}
     volumes:
-      - ./gateway/nginx.conf:/etc/nginx/nginx.conf:ro
-      - ./frontend-workspace/dist/frontend-user:/usr/share/nginx/html/user:ro
-      - ./frontend-workspace/dist/frontend-admin:/usr/share/nginx/html/admin:ro
+      - ./gateway/nginx.conf.template:/etc/nginx/nginx.conf.template:ro
+      # Check volumes are populated by builder
+      - frontend-dist:/usr/share/nginx/html:ro
+    command: /bin/sh -c "envsubst '$${SERVICE_PORT} $${ZITADEL_PORT}' < /etc/nginx/nginx.conf.template > /etc/nginx/nginx.conf && nginx -g 'daemon off;'"
     depends_on:
-      - form-service
-      - management-service
-      - log-service
-      - zitadel
+      frontend-builder:
+        condition: service_completed_successfully
+      form-service:
+        condition: service_started
+      management-service:
+        condition: service_started
+      log-service:
+        condition: service_started
+      zitadel:
+        condition: service_started
 
-  # --- ZITADEL SERVICES (Integrated from Official Docs) ---
+  # --- ZITADEL SERVICES ---
   zitadel:
     restart: unless-stopped
     image: ghcr.io/zitadel/zitadel:latest
-    command: start-from-init --masterkey "MasterkeyNeedsToHave32Characters"
+    command: start-from-init --masterkey "${ZITADEL_MASTERKEY}"
     environment:
       ZITADEL_EXTERNALDOMAIN: localhost
-      ZITADEL_EXTERNALSECURE: "false"
-      ZITADEL_TLS_ENABLED: "false"
+      ZITADEL_EXTERNALSECURE: "${ZITADEL_EXTERALSECURE}"
+      ZITADEL_TLS_ENABLED: "${ZITADEL_TLS_ENABLED}"
 
-      # Database connection settings
-      ZITADEL_DATABASE_POSTGRES_HOST: zitadel-db
-      ZITADEL_DATABASE_POSTGRES_PORT: 5432
-      ZITADEL_DATABASE_POSTGRES_DATABASE: zitadel
-      ZITADEL_DATABASE_POSTGRES_ADMIN_USERNAME: postgres
-      ZITADEL_DATABASE_POSTGRES_ADMIN_PASSWORD: postgres
+      ZITADEL_DATABASE_POSTGRES_HOST: ${ZITADEL_DB_HOST}
+      ZITADEL_DATABASE_POSTGRES_PORT: ${ZITADEL_DB_PORT}
+      ZITADEL_DATABASE_POSTGRES_DATABASE: ${ZITADEL_DB_NAME}
+      ZITADEL_DATABASE_POSTGRES_ADMIN_USERNAME: ${ZITADEL_DB_ADMIN_USER}
+      ZITADEL_DATABASE_POSTGRES_ADMIN_PASSWORD: ${ZITADEL_DB_ADMIN_PASSWORD}
       ZITADEL_DATABASE_POSTGRES_ADMIN_SSL_MODE: disable
-      ZITADEL_DATABASE_POSTGRES_USER_USERNAME: zitadel
-      ZITADEL_DATABASE_POSTGRES_USER_PASSWORD: zitadel
+      ZITADEL_DATABASE_POSTGRES_USER_USERNAME: ${ZITADEL_DB_USER}
+      ZITADEL_DATABASE_POSTGRES_USER_PASSWORD: ${ZITADEL_DB_PASSWORD}
       ZITADEL_DATABASE_POSTGRES_USER_SSL_MODE: disable
 
-      # Login Client PAT Setup
-      ZITADEL_FIRSTINSTANCE_LOGINCLIENTPATPATH: /current-dir/login-client.pat
+      ZITADEL_FIRSTINSTANCE_LOGINCLIENTPATPATH: ${LOGIN_CLIENT_PAT_PATH}
       ZITADEL_FIRSTINSTANCE_ORG_HUMAN_PASSWORDCHANGEREQUIRED: "false"
-      ZITADEL_FIRSTINSTANCE_ORG_LOGINCLIENT_MACHINE_USERNAME: login-client
-      ZITADEL_FIRSTINSTANCE_ORG_LOGINCLIENT_MACHINE_NAME: Automatically Initialized IAM_LOGIN_CLIENT
+      ZITADEL_FIRSTINSTANCE_ORG_LOGINCLIENT_MACHINE_USERNAME: ${LOGIN_CLIENT_USERNAME}
+      ZITADEL_FIRSTINSTANCE_ORG_LOGINCLIENT_MACHINE_NAME: ${LOGIN_CLIENT_NAME}
       ZITADEL_FIRSTINSTANCE_ORG_LOGINCLIENT_PAT_EXPIRATIONDATE: '2029-01-01T00:00:00Z'
 
-      # Login V2 Configuration
       ZITADEL_DEFAULTINSTANCE_FEATURES_LOGINV2_REQUIRED: "true"
-      ZITADEL_DEFAULTINSTANCE_FEATURES_LOGINV2_BASEURI: http://localhost:3000/ui/v2/login
-      ZITADEL_OIDC_DEFAULTLOGINURLV2: http://localhost:3000/ui/v2/login/login?authRequest=
-      ZITADEL_OIDC_DEFAULTLOGOUTURLV2: http://localhost:3000/ui/v2/login/logout?post_logout_redirect=
-      ZITADEL_SAML_DEFAULTLOGINURLV2: http://localhost:3000/ui/v2/login/login?samlRequest=
+      ZITADEL_DEFAULTINSTANCE_FEATURES_LOGINV2_BASEURI: http://localhost:${ZITADEL_LOGIN_PORT}/ui/v2/login
+      ZITADEL_OIDC_DEFAULTLOGINURLV2: http://localhost:${ZITADEL_LOGIN_PORT}/ui/v2/login/login?authRequest=
+      ZITADEL_OIDC_DEFAULTLOGOUTURLV2: http://localhost:${ZITADEL_LOGIN_PORT}/ui/v2/login/logout?post_logout_redirect=
+      ZITADEL_SAML_DEFAULTLOGINURLV2: http://localhost:${ZITADEL_LOGIN_PORT}/ui/v2/login/login?samlRequest=
 
     healthcheck:
       test: [ "CMD", "/app/zitadel", "ready" ]
@@ -59,8 +76,8 @@ services:
     volumes:
       - .:/current-dir:delegated
     ports:
-      - "8080:8080"
-      - "3000:3000"
+      - "${ZITADEL_PORT}:8080"
+      - "${ZITADEL_LOGIN_PORT}:3000"
     networks:
       - default
     depends_on:
@@ -71,9 +88,9 @@ services:
     restart: unless-stopped
     image: ghcr.io/zitadel/zitadel-login:latest
     environment:
-      - ZITADEL_API_URL=http://localhost:8080
+      - ZITADEL_API_URL=http://localhost:${ZITADEL_PORT}
       - NEXT_PUBLIC_BASE_PATH=/ui/v2/login
-      - ZITADEL_SERVICE_USER_TOKEN_FILE=/current-dir/login-client.pat
+      - ZITADEL_SERVICE_USER_TOKEN_FILE=${LOGIN_CLIENT_PAT_PATH}
     network_mode: service:zitadel
     volumes:
       - .:/current-dir:ro
@@ -85,16 +102,16 @@ services:
     restart: unless-stopped
     image: postgres:17
     environment:
-      PGUSER: postgres
-      POSTGRES_PASSWORD: postgres
+      PGUSER: ${ZITADEL_DB_ADMIN_USER}
+      POSTGRES_PASSWORD: ${ZITADEL_DB_ADMIN_PASSWORD}
     healthcheck:
-      test: [ "CMD-SHELL", "pg_isready -d zitadel -U postgres" ]
+      test: [ "CMD-SHELL", "pg_isready -d ${ZITADEL_DB_NAME} -U ${ZITADEL_DB_ADMIN_USER}" ]
       interval: 10s
       timeout: 30s
       retries: 5
       start_period: 20s
     ports:
-      - "5432:5432"
+      - "${ZITADEL_DB_PORT}:5432"
     volumes:
       - zitadel-data:/var/lib/postgresql/data
     networks:
@@ -102,28 +119,28 @@ services:
 
   # --- APPLICATION SERVICES ---
 
-  # Database for Application Data (Forms, Invites)
   app-db:
     image: postgres:15-alpine
     environment:
-      - POSTGRES_USER=visine
-      - POSTGRES_PASSWORD=visine
-      - POSTGRES_DB=visine_db
+      - POSTGRES_USER=${APP_DB_USER}
+      - POSTGRES_PASSWORD=${APP_DB_PASSWORD}
+      - POSTGRES_DB=${APP_DB_NAME}
     volumes:
       - app-db-data:/var/lib/postgresql/data
-    ports:
-      - "5433:5432" # Mapped to 5433 to avoid conflict with Zitadel DB
+    # Internal only
+    expose:
+      - "5432"
 
   form-service:
     build:
       context: .
       dockerfile: ./form-service/Dockerfile
     environment:
-      - PORT=8000
-      - DB_HOST=app-db
-      - DB_NAME=visine_db
-      - DB_USER=visine
-      - DB_PASSWORD=visine
+      - PORT=${SERVICE_PORT}
+      - DB_HOST=${APP_DB_HOST}
+      - DB_NAME=${APP_DB_NAME}
+      - DB_USER=${APP_DB_USER}
+      - DB_PASSWORD=${APP_DB_PASSWORD}
     depends_on:
       - app-db
     deploy:
@@ -134,12 +151,12 @@ services:
       context: .
       dockerfile: ./management-service/Dockerfile
     environment:
-      - PORT=8000
-      - DB_HOST=app-db
-      - DB_NAME=visine_db
-      - DB_USER=visine
-      - DB_PASSWORD=visine
-      - ZITADEL_ISSUER=http://zitadel:8080
+      - PORT=${SERVICE_PORT}
+      - DB_HOST=${APP_DB_HOST}
+      - DB_NAME=${APP_DB_NAME}
+      - DB_USER=${APP_DB_USER}
+      - DB_PASSWORD=${APP_DB_PASSWORD}
+      - ZITADEL_ISSUER=http://zitadel:${ZITADEL_PORT}
     depends_on:
       - app-db
     deploy:
@@ -150,14 +167,15 @@ services:
       context: .
       dockerfile: ./log-service/Dockerfile
     environment:
-      - PORT=8000
+      - PORT=${SERVICE_PORT}
     deploy:
       replicas: 1
 
 volumes:
   zitadel-data:
   app-db-data:
-
+  frontend-dist:
+    # Shared volume for frontend artifacts
 
 networks:
   default:
