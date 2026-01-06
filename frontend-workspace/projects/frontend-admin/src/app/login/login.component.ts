@@ -3,7 +3,7 @@ import { CommonModule } from '@angular/common';
 import { ManagementService } from '../../../../shared-lib/src/lib/services/management.service';
 import { AuthService } from '../../../../shared-lib/src/lib/auth.service';
 import { FormBuilder, FormGroup, Validators, ReactiveFormsModule } from '@angular/forms';
-import { Router } from '@angular/router';
+import { Router, ActivatedRoute } from '@angular/router';
 
 @Component({
   selector: 'app-login',
@@ -20,7 +20,8 @@ export class LoginComponent {
     private fb: FormBuilder,
     private managementService: ManagementService,
     private authService: AuthService,
-    private router: Router
+    private router: Router,
+    private route: ActivatedRoute
   ) {
     this.redeemForm = this.fb.group({
       code: ['', Validators.required],
@@ -31,6 +32,12 @@ export class LoginComponent {
       username: ['', Validators.required],
       password: ['', Validators.required]
     });
+
+    // Auto-fill code if present in URL
+    const code = this.route.snapshot.queryParams['code'];
+    if (code) {
+      this.redeemForm.patchValue({ code });
+    }
   }
 
   loginForm: FormGroup;

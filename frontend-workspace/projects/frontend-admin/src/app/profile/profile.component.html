@@ -1,0 +1,69 @@
+<div class="max-w-4xl mx-auto mt-10 p-6">
+    <h2 class="text-3xl font-bold text-gray-800 mb-8">My Profile</h2>
+
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+        <!-- Change Password Section -->
+        <div class="bg-white rounded-xl shadow-lg p-6 border border-gray-100">
+            <h3 class="text-xl font-semibold mb-4 text-gray-700 flex items-center gap-2">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                        d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z">
+                    </path>
+                </svg>
+                Change Password
+            </h3>
+            <form [formGroup]="passwordForm" (ngSubmit)="onChangePassword()">
+                <div class="mb-4">
+                    <label class="block text-gray-600 text-sm font-medium mb-1" for="currentPassword">Current
+                        Password</label>
+                    <input type="password" id="currentPassword" formControlName="currentPassword"
+                        class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none transition-all">
+                </div>
+                <div class="mb-4">
+                    <label class="block text-gray-600 text-sm font-medium mb-1" for="newPassword">New Password</label>
+                    <input type="password" id="newPassword" formControlName="newPassword"
+                        class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none transition-all">
+                </div>
+
+                <div *ngIf="passwordMessage" [class.text-green-600]="!passwordError"
+                    [class.text-red-600]="passwordError" class="mb-4 text-sm font-medium">
+                    {{ passwordMessage }}
+                </div>
+
+                <button type="submit" [disabled]="passwordForm.invalid || isPasswordSubmitting"
+                    class="w-full bg-blue-600 text-white font-semibold py-2 rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50">
+                    {{ isPasswordSubmitting ? 'Updating...' : 'Update Password' }}
+                </button>
+            </form>
+        </div>
+
+        <!-- Change Email Section -->
+        <div class="bg-white rounded-xl shadow-lg p-6 border border-gray-100">
+            <h3 class="text-xl font-semibold mb-4 text-gray-700 flex items-center gap-2">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                        d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z">
+                    </path>
+                </svg>
+                Change Email
+            </h3>
+            <form [formGroup]="emailForm" (ngSubmit)="onChangeEmail()">
+                <div class="mb-4">
+                    <label class="block text-gray-600 text-sm font-medium mb-1" for="newEmail">New Email Address</label>
+                    <input type="email" id="newEmail" formControlName="newEmail"
+                        class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none transition-all">
+                </div>
+
+                <div *ngIf="emailMessage" [class.text-green-600]="!emailError" [class.text-red-600]="emailError"
+                    class="mb-4 text-sm font-medium">
+                    {{ emailMessage }}
+                </div>
+
+                <button type="submit" [disabled]="emailForm.invalid || isEmailSubmitting"
+                    class="w-full bg-purple-600 text-white font-semibold py-2 rounded-lg hover:bg-purple-700 transition-colors disabled:opacity-50">
+                    {{ isEmailSubmitting ? 'Updating...' : 'Update Email' }}
+                </button>
+            </form>
+        </div>
+    </div>
+</div>

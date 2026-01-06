@@ -3,6 +3,8 @@ import { CommonModule } from '@angular/common';
 import { ManagementService, InviteResponse } from '../../../../shared-lib/src/lib/services/management.service';
 import { ZitadelService, ZitadelUser } from '../../../../shared-lib/src/lib/services/zitadel.service';
 
+import { Router } from '@angular/router';
+
 @Component({
     selector: 'app-dashboard',
     standalone: true,
@@ -16,7 +18,8 @@ export class DashboardComponent implements OnInit {
 
     constructor(
         private managementService: ManagementService,
-        private zitadelService: ZitadelService
+        private zitadelService: ZitadelService,
+        private router: Router
     ) { }
 
     ngOnInit(): void {
@@ -34,6 +37,8 @@ export class DashboardComponent implements OnInit {
     }
 
     generateInvite() {
+        this.router.navigate(['/invite-generator']);
+        /* Deprecated inline generation
         this.managementService.createInvite().subscribe({
             next: (res: InviteResponse) => {
                 this.newInviteCode = res.code;
@@ -43,5 +48,6 @@ export class DashboardComponent implements OnInit {
                 this.error = 'Failed to create invite.';
             }
         });
+        */
     }
 }

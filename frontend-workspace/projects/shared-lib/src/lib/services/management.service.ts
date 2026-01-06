@@ -19,12 +19,20 @@ export class ManagementService {
 
     constructor(private http: HttpClient) { }
 
-    createInvite(): Observable<InviteResponse> {
-        return this.http.post<InviteResponse>(`${this.apiUrl}/invites/`, {});
+    createInvite(email: string): Observable<InviteResponse> {
+        return this.http.post<InviteResponse>(`${this.apiUrl}/invites/`, { email });
     }
 
     redeemInvite(code: string, email: string): Observable<RedeemResponse> {
         const payload = { code, email };
         return this.http.post<RedeemResponse>(`${this.apiUrl}/invites/redeem/`, payload);
+    }
+
+    updatePassword(password: string, newPassword: string): Observable<any> {
+        return this.http.post(`${this.apiUrl}/me/password`, { password, newPassword });
+    }
+
+    updateEmail(email: string): Observable<any> {
+        return this.http.post(`${this.apiUrl}/me/email`, { email });
     }
 }
