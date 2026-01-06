@@ -16,7 +16,8 @@
     "moduleResolution": "node",
     "importHelpers": true,
     "types": [
-      "node"
+      "node",
+      "jasmine"
     ],
     "paths": {
       "shared-lib": [

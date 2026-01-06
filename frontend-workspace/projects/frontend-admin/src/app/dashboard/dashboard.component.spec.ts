@@ -5,11 +5,14 @@ import { ZitadelService, ZitadelUser } from '../../../../shared-lib/src/lib/serv
 import { of, throwError } from 'rxjs';
 import { By } from '@angular/platform-browser';
 
+import { Router } from '@angular/router';
+
 describe('DashboardComponent', () => {
     let component: DashboardComponent;
     let fixture: ComponentFixture<DashboardComponent>;
     let mockManagementService: any;
     let mockZitadelService: any;
+    let mockRouter: any;
 
     beforeEach(async () => {
         mockManagementService = {
@@ -23,11 +26,16 @@ describe('DashboardComponent', () => {
             ] as ZitadelUser[]))
         };
 
+        mockRouter = {
+            navigate: jasmine.createSpy('navigate')
+        };
+
         await TestBed.configureTestingModule({
             imports: [DashboardComponent],
             providers: [
                 { provide: ManagementService, useValue: mockManagementService },
-                { provide: ZitadelService, useValue: mockZitadelService }
+                { provide: ZitadelService, useValue: mockZitadelService },
+                { provide: Router, useValue: mockRouter }
             ]
         })
             .compileComponents();
@@ -47,10 +55,8 @@ describe('DashboardComponent', () => {
         expect(component.users[0].username).toBe('user1');
     });
 
-    it('should generate invite code on button click', () => {
-        // Simulate button click if button exists, or just call method
+    it('should navigate to invite generator on button click', () => {
         component.generateInvite();
-        expect(mockManagementService.createInvite).toHaveBeenCalled();
-        expect(component.newInviteCode).toBe('NEW-INVITE-CODE');
+        expect(mockRouter.navigate).toHaveBeenCalledWith(['/invite-generator']);
     });
 });

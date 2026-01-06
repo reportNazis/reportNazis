@@ -1,5 +1,8 @@
 import { Component, OnInit } from '@angular/core';
+import { ModalComponent } from '../shared/components/modal/modal.component';
+
 import { CommonModule } from '@angular/common';
+import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { ManagementService, InviteResponse } from '../../../../shared-lib/src/lib/services/management.service';
 import { ZitadelService, ZitadelUser } from '../../../../shared-lib/src/lib/services/zitadel.service';
 
@@ -8,7 +11,7 @@ import { Router } from '@angular/router';
 @Component({
     selector: 'app-dashboard',
     standalone: true,
-    imports: [CommonModule],
+    imports: [CommonModule, ReactiveFormsModule, ModalComponent],
     templateUrl: './dashboard.component.html'
 })
 export class DashboardComponent implements OnInit {
@@ -16,11 +19,23 @@ export class DashboardComponent implements OnInit {
     newInviteCode: string | null = null;
     error: string = '';
 
+    // Modal & Form
+    isInviteModalVisible = false;
+    inviteForm: FormGroup;
+    inviteMessage: string = '';
+    inviteError: string = '';
+    isSubmittingInvite = false;
+
     constructor(
         private managementService: ManagementService,
         private zitadelService: ZitadelService,
-        private router: Router
-    ) { }
+        private router: Router,
+        private fb: FormBuilder
+    ) {
+        this.inviteForm = this.fb.group({
+            email: ['', [Validators.required, Validators.email]]
+        });
+    }
 
     ngOnInit(): void {
         this.loadUsers();
@@ -37,17 +52,37 @@ export class DashboardComponent implements OnInit {
     }
 
     generateInvite() {
-        this.router.navigate(['/invite-generator']);
-        /* Deprecated inline generation
-        this.managementService.createInvite().subscribe({
-            next: (res: InviteResponse) => {
-                this.newInviteCode = res.code;
-            },
-            error: (err: unknown) => {
-                console.error('Failed to create invite', err);
-                this.error = 'Failed to create invite.';
-            }
-        });
-        */
+        this.isInviteModalVisible = true;
+        this.inviteForm.reset();
+        this.inviteMessage = '';
+        this.inviteError = '';
+        this.newInviteCode = null;
+    }
+
+    closeInviteModal() {
+        this.isInviteModalVisible = false;
+    }
+
+    onInviteSubmit() {
+        if (this.inviteForm.valid) {
+            this.isSubmittingInvite = true;
+            this.inviteMessage = '';
+            this.inviteError = '';
+            const { email } = this.inviteForm.value;
+
+            this.managementService.createInvite(email).subscribe({
+                next: (res) => {
+                    this.isSubmittingInvite = false;
+                    this.inviteMessage = `Invite sent to ${email}. Code: ${res.code}`;
+                    this.newInviteCode = res.code;
+                    this.inviteForm.reset();
+                },
+                error: (err) => {
+                    this.isSubmittingInvite = false;
+                    this.inviteError = 'Failed to send invite.';
+                    console.error(err);
+                }
+            });
+        }
     }
 }

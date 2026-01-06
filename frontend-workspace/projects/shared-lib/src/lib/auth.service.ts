@@ -46,31 +46,16 @@ export class AuthService {
     }
 
     loginWithCredentials(username: string, password: string): Observable<any> {
-        const body = new URLSearchParams();
-        body.set('grant_type', 'password');
-        body.set('client_id', this.settings.client_id || '');
-        body.set('username', username);
-        body.set('password', password);
-        body.set('scope', this.settings.scope || 'openid profile email');
+        // Call our backend proxy endpoint which talks to Zitadel Session API
+        const loginEndpoint = '/api/mgmt/login/';
 
-        // We assume the gateway proxies /auth requests to Zitadel
-        const tokenEndpoint = '/auth/oauth/v2/token';
-
-        const headers = new HttpHeaders({
-            'Content-Type': 'application/x-www-form-urlencoded'
-        });
-
-        return this.http.post(tokenEndpoint, body.toString(), { headers }).pipe(
+        return this.http.post(loginEndpoint, { username, password }).pipe(
             map((response: any) => {
-                // Manually construct a User object or similar if we want to integrate with oidc-client-ts
-                // For now, let's just update the subject with a partial user or handle it
-                // Ideally we would use User.fromStorageString or similar but we are just getting raw tokens.
-
-                // Let's create a minimal User-like object to satisfy the app state
+                // Store session info from our backend
                 const user = {
-                    access_token: response.access_token,
-                    id_token: response.id_token,
-                    profile: { sub: 'manual_login', name: username }, // We would need to parse ID token for real details
+                    access_token: response.sessionToken,
+                    id_token: response.sessionId,
+                    profile: { sub: 'session_login', name: username },
                     expired: false
                 } as User;
 

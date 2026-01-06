@@ -4,7 +4,7 @@ import { ManagementService } from '../../../../shared-lib/src/lib/services/manag
 import { AuthService } from '../../../../shared-lib/src/lib/auth.service';
 import { ReactiveFormsModule } from '@angular/forms';
 import { of, throwError } from 'rxjs';
-import { Router } from '@angular/router';
+import { Router, ActivatedRoute } from '@angular/router';
 
 describe('LoginComponent', () => {
   let component: LoginComponent;
@@ -12,6 +12,7 @@ describe('LoginComponent', () => {
   let mockManagementService: any;
   let mockAuthService: any;
   let mockRouter: any;
+  let mockActivatedRoute: any;
 
   beforeEach(async () => {
     mockManagementService = {
@@ -19,11 +20,18 @@ describe('LoginComponent', () => {
     };
 
     mockAuthService = {
-      login: jasmine.createSpy('login')
+      login: jasmine.createSpy('login'),
+      loginWithCredentials: jasmine.createSpy('loginWithCredentials').and.returnValue(of({}))
     };
 
     mockRouter = {
       navigate: jasmine.createSpy('navigate')
+    };
+
+    mockActivatedRoute = {
+      snapshot: {
+        queryParams: { code: 'TEST-QUERY-CODE' }
+      }
     };
 
     await TestBed.configureTestingModule({
@@ -31,7 +39,8 @@ describe('LoginComponent', () => {
       providers: [
         { provide: ManagementService, useValue: mockManagementService },
         { provide: AuthService, useValue: mockAuthService },
-        { provide: Router, useValue: mockRouter }
+        { provide: Router, useValue: mockRouter },
+        { provide: ActivatedRoute, useValue: mockActivatedRoute }
       ]
     })
       .compileComponents();
