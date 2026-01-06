@@ -27,10 +27,10 @@ http {
         }
 
         # Frontend Admin App
-        location /admin {
+        location /admin/ {
             # Match the artifact folder name: frontend-admin
-            alias /usr/share/nginx/html/frontend-admin;
-            try_files $uri $uri/ /index.html;
+            alias /usr/share/nginx/html/frontend-admin/;
+            try_files $uri $uri/ /admin/index.html;
         }
 
         # Management Service API

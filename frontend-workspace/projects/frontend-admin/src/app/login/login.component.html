@@ -1,1 +1,58 @@
-<p>login works!</p>
+<div class="min-h-screen flex flex-col items-center justify-center bg-gray-100 gap-8 p-4">
+  
+  <div class="bg-white p-8 rounded-lg shadow-md w-full max-w-md">
+    <h2 class="text-2xl font-bold mb-2 text-center text-gray-800">Admin Login</h2>
+    <p class="text-gray-600 mb-6 text-center">Welcome to the Visine Sunflower Admin Panel.</p>
+    
+    <form [formGroup]="loginForm" (ngSubmit)="onLogin()">
+        <div class="mb-4">
+            <label for="username" class="block text-gray-700 font-medium mb-1">Username</label>
+            <input type="text" id="username" formControlName="username" class="w-full border border-gray-300 rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="Username">
+        </div>
+
+        <div class="mb-6">
+            <label for="password" class="block text-gray-700 font-medium mb-1">Password</label>
+            <input type="password" id="password" formControlName="password" class="w-full border border-gray-300 rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="Password">
+        </div>
+
+        <button type="submit" [disabled]="!loginForm.valid" class="w-full bg-blue-600 text-white font-bold py-2 px-4 rounded hover:bg-blue-700 transition disabled:bg-gray-400 disabled:cursor-not-allowed">
+            Login
+        </button>
+
+        <p *ngIf="loginError" class="text-red-600 mt-4 text-center">{{ loginError }}</p>
+    </form>
+
+    <div class="mt-4 text-center">
+        <!-- Optional: Keep SSO/Redirect if needed, but requirements say "proxy by login form" -->
+        <button (click)="login()" class="text-blue-600 hover:underline text-sm">Or login via SSO Redirect (Legacy)</button>
+    </div>
+  </div>
+
+  <div class="text-gray-500 font-bold">OR</div>
+
+  <div class="bg-white p-8 rounded-lg shadow-md w-full max-w-md">
+    <h3 class="text-xl font-bold mb-2 text-gray-800">Redeem Invite</h3>
+    <p class="text-gray-600 mb-6">Have an invite code? Create your account here.</p>
+    
+    <form [formGroup]="redeemForm" (ngSubmit)="onSubmit()">
+      <div class="mb-4">
+        <label for="code" class="block text-gray-700 font-medium mb-1">Invite Code</label>
+        <input type="text" id="code" formControlName="code" placeholder="Enter Invite Code" class="w-full border border-gray-300 rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500">
+      </div>
+
+      <div class="mb-6">
+        <label for="email" class="block text-gray-700 font-medium mb-1">Email</label>
+        <input type="email" id="email" formControlName="email" placeholder="Enter your email" class="w-full border border-gray-300 rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500">
+      </div>
+
+      <div class="actions">
+        <button type="submit" [disabled]="!redeemForm.valid" class="w-full bg-green-600 text-white font-bold py-2 px-4 rounded hover:bg-green-700 transition disabled:bg-gray-400 disabled:cursor-not-allowed">
+            Redeem & Create Account
+        </button>
+      </div>
+
+      <p *ngIf="message" class="text-green-600 mt-4 text-center">{{ message }}</p>
+      <p *ngIf="error" class="text-red-600 mt-4 text-center">{{ error }}</p>
+    </form>
+  </div>
+</div>
