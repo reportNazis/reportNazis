@@ -1,6 +1,8 @@
-import { Component, OnInit, signal } from '@angular/core';
+import { Component, OnInit, signal, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { SafeHtml } from '@angular/platform-browser';
+import { ActivatedRoute } from '@angular/router';
+import { Subscription } from 'rxjs'; // Import Subscription
 
 // Services
 import { MockDataService, PollutionData } from '../../../core/services/mock-data.service';
@@ -53,7 +55,10 @@ import { MapTimelineComponent, TimelineConfig } from '../components/map-timeline
       <app-map-legend [config]="legendConfig"></app-map-legend>
 
       <!-- 5. Timeline -->
-      <app-map-timeline [config]="timelineConfig"></app-map-timeline>
+      <app-map-timeline 
+          [config]="timelineConfig"
+          (dateChange)="handleDateChange($event)"
+      ></app-map-timeline>
 
       <!-- Modal -->
       <app-modal 
@@ -66,7 +71,7 @@ import { MapTimelineComponent, TimelineConfig } from '../components/map-timeline
           <div class="p-3 bg-blue-500/10 border border-blue-500/20 rounded-lg">
              <p class="text-sm text-blue-200">Reporting pollution data for <strong>{{ selectedZip()?.zipCode }}</strong>.</p>
           </div>
-          <!-- Form content same as before -->
+          <!-- Form content -->
            <div class="space-y-2">
              <label class="text-xs uppercase text-gray-500 font-bold tracking-wider">Severity Level</label>
              <div class="grid grid-cols-3 gap-2">
@@ -121,11 +126,12 @@ import { MapTimelineComponent, TimelineConfig } from '../components/map-timeline
     }
   `]
 })
-export class MunichMapComponent implements OnInit {
+export class MunichMapComponent implements OnInit, OnDestroy {
 
   // Data
   private rawSvg = signal<string>('');
   private pollutionData = signal<PollutionData[]>([]);
+  private routeSub: Subscription | null = null; // Type explicit
 
   // UI
   safeSvgContent: SafeHtml | null = null;
@@ -140,30 +146,59 @@ export class MunichMapComponent implements OnInit {
   };
 
   timelineConfig: TimelineConfig = {
-    enableLiveMode: true
+    range: 'live',
+    interval: '15m'
   };
 
   constructor(
     private mockData: MockDataService,
     private mapRenderer: MapRenderingService,
-    private mapAnimations: MapAnimationsService
+    private mapAnimations: MapAnimationsService,
+    private route: ActivatedRoute
   ) { }
 
   ngOnInit(): void {
-    this.loadData();
-  }
+    // Initial Load of Map SVG
+    this.mockData.getMunichMapData().subscribe(svg => {
+      this.rawSvg.set(svg);
+      // Only render if we have data (which we might fetch in route sub)
+      if (this.pollutionData().length > 0) {
+        this.safeSvgContent = this.mapRenderer.renderMap(svg, this.pollutionData());
+      }
+    });
 
-  private loadData(): void {
-    this.mockData.getPollutionData().subscribe(data => {
-      this.pollutionData.set(data);
-      this.mockData.getMunichMapData().subscribe(svg => {
-        this.rawSvg.set(svg);
-        this.safeSvgContent = this.mapRenderer.renderMap(svg, data);
-      });
+    // Listen to params
+    this.routeSub = this.route.params.subscribe(params => {
+      const range = params['range'] || 'live';
+      const interval = params['interval'] || '15m';
+
+      this.timelineConfig = { range, interval };
+      this.fetchDataForTime(range, interval, new Date());
     });
   }
 
-  // --- Event Handlers ---
+  ngOnDestroy() {
+    if (this.routeSub) this.routeSub.unsubscribe();
+  }
+
+  private fetchDataForTime(range: string, interval: string, date: Date) {
+    this.mockData.getPollutionDataByTime(range, interval, date).subscribe(data => {
+      this.pollutionData.set(data);
+      // Re-render map if SVG exists
+      const svg = this.rawSvg();
+      if (svg) {
+        this.safeSvgContent = this.mapRenderer.renderMap(svg, data);
+      }
+    });
+  }
+
+  handleDateChange(date: Date) {
+    if (this.timelineConfig) {
+      this.fetchDataForTime(this.timelineConfig.range, this.timelineConfig.interval, date);
+    }
+  }
+
+  // --- Previous Event Handlers ---
 
   handleSearch(zip: string) {
     const found = this.pollutionData().find(p => p.zipCode === zip);
@@ -171,7 +206,6 @@ export class MunichMapComponent implements OnInit {
       this.selectedZip.set(found);
       this.mapAnimations.highlightZip(zip);
     } else {
-      // Ideally show error toast, or pass error back to navbar if it supports it
       this.selectedZip.set(null);
       this.mapAnimations.clearHighlight();
     }
@@ -201,7 +235,6 @@ export class MunichMapComponent implements OnInit {
 
   submitReport() {
     this.isModalOpen = false;
-    // Logic to save report via service
     alert('Report submitted for ' + this.selectedZip()?.zipCode);
   }
 }

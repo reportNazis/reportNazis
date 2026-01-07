@@ -47,14 +47,48 @@ export class MockDataService {
     /**
      * Returns mock pollution data.
      */
-    getPollutionData(): Observable<PollutionData[]> {
-        const data: PollutionData[] = [
-            { zipCode: '80331', score: 25 },  // Low
-            { zipCode: '80469', score: 55 },  // Medium
-            { zipCode: '80333', score: 85 },  // High
-            { zipCode: '80538', score: 10 },  // Low
-            { zipCode: '80335', score: null } // No Data
-        ];
-        return of(data);
-    }
+}
+
+/**
+ * Returns mock pollution data.
+ */
+getPollutionData(): Observable < PollutionData[] > {
+    const data: PollutionData[] = [
+        { zipCode: '80331', score: 25 },  // Low
+        { zipCode: '80469', score: 55 },  // Medium
+        { zipCode: '80333', score: 85 },  // High
+        { zipCode: '80538', score: 10 },  // Low
+        { zipCode: '80335', score: null } // No Data
+    ];
+    return of(data);
+}
+
+/**
+ * Simulates fetching data for a specific time range and interval.
+ * Returns varying data to demonstrate "time travel".
+ */
+getPollutionDataByTime(range: string, interval: string, timestamp ?: Date): Observable < PollutionData[] > {
+    // Deterministic pseudo-random based on timestamp or just random for now
+    // To make it look "alive", we can randomize the scores slightly
+    const baseData = [
+        { zipCode: '80331', score: 25 },
+        { zipCode: '80469', score: 55 },
+        { zipCode: '80333', score: 85 },
+        { zipCode: '80538', score: 10 },
+        { zipCode: '80335', score: null }
+    ];
+
+    const adjustedData = baseData.map(item => {
+        if (item.score !== null) {
+            // Randomize score between -20 and +20 of base, keeping within 0-100
+            const change = Math.floor(Math.random() * 41) - 20;
+            let newScore = item.score + change;
+            newScore = Math.max(0, Math.min(100, newScore));
+            return { ...item, score: newScore };
+        }
+        return item;
+    });
+
+    return of(adjustedData);
+}
 }
