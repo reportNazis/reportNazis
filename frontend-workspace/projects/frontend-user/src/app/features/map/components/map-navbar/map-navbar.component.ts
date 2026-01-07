@@ -25,7 +25,7 @@ import { Observable, of } from 'rxjs';
           <input 
             [formControl]="searchControl"
             type="text" 
-            placeholder="Land oder Region suchen" 
+            placeholder="Region suchen | Postleitzahl" 
             class="block w-full bg-transparent border-none text-[15px] placeholder-gray-500 text-white focus:outline-none focus:ring-0 shadow-none transition-all"
             (focus)="showResults = true"
           />

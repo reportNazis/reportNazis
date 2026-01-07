@@ -54,17 +54,18 @@ graph TD
 
 ### MapLegendComponent
 - **File**: `map-legend.component.ts`
-- **Config**: `map-legend.config.ts`
-- **Description**: Renders a color-coded legend bar that helps users interpret map colors (e.g., pollution intensity).
-- **Config Interface**: `LegendConfig`
+- **Config**: Configured via `LegendData` in `LayerSourceConfig` (see `layer.types.ts`)
+- **Description**: Renders a color-coded legend bar based on the active layer's configuration.
+- **Config Interface**: `LegendData`
   ```typescript
-  export interface LegendConfig {
-      title: string;
-      unit: string;
-      labels: string[];
+  export interface LegendData {
+      title: string;          // Name
+      unit: string;           // Einheit
+      colorTheme: string;     // 'pollution' | 'price' | ...
+      breakpoints: string[];  // Breaking Points (Labels)
   }
   ```
-- **Has Config**: `true` (Signal Input)
+- **Has Config**: `true` (Signal Input from Parent)
 
 ### MapTimelineComponent
 - **File**: `map-timeline.component.ts`

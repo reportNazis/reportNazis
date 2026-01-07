@@ -14,9 +14,9 @@ import { ModalComponent } from '../../../shared/components/modal/modal.component
 import { MapNavbarComponent } from '../components/map-navbar/map-navbar.component';
 import { MapSettingsComponent } from '../components/map-settings/map-settings.component';
 import { MapLegendComponent } from '../components/map-legend/map-legend.component';
-import { LegendConfig } from '../components/map-legend/map-legend.config';
+import { LegendData } from '../../../models/layer.types';
 import { MapTimelineComponent } from '../components/map-timeline/map-timeline.component';
-import { TimelineConfig } from '../components/map-timeline/map-timeline.config';
+import { TimelineConfig } from '../../../config/map/map-timeline.config';
 import { MapLayersComponent } from '../../../components/map-layers/map-layers.component';
 import { LayerService } from '../../../services/layer.service';
 
@@ -56,7 +56,9 @@ import { LayerService } from '../../../services/layer.service';
       ></app-map-settings>
 
       <!-- 4. Legend -->
-      <app-map-legend [config]="legendConfig"></app-map-legend>
+      @if (legendConfig()) {
+        <app-map-legend [config]="legendConfig()!"></app-map-legend>
+      }
 
       <!-- 5. Timeline -->
       <app-map-timeline 
@@ -146,11 +148,7 @@ export class MunichMapComponent implements OnInit, OnDestroy {
   isModalOpen = false;
 
   // Configurations
-  legendConfig: LegendConfig = {
-    title: 'CO₂-Intensität',
-    unit: 'gCO₂eq/kWh',
-    labels: ['0', '300', '600', '900', '1200+']
-  };
+  legendConfig = signal<LegendData | null>(null);
 
   timelineConfig: TimelineConfig = {
     range: 'live',
@@ -170,13 +168,8 @@ export class MunichMapComponent implements OnInit, OnDestroy {
       const activeSource = this.layerService.activeDataSource();
       console.log('Active Data Source Changed:', activeSource);
 
-      // Update Legend Title based on active layer
-      this.legendConfig = {
-        ...this.legendConfig,
-        title: activeSource.label,
-        // TODO: Update unit based on source type (gCO2/kWh vs €/MWh)
-        unit: activeSource.id === 'price' ? '€/MWh' : 'gCO₂eq/kWh'
-      };
+      // Update Legend Config based on active layer
+      this.legendConfig.set(activeSource.legend);
 
       // TODO: Trigger map re-render with new color scale
       // this.mapRenderer.updateTheme(activeSource.id); 

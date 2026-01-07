@@ -3,7 +3,7 @@ import { provideRouter } from '@angular/router';
 import { AppComponent } from './app/app.component';
 import { routes } from './app/app.routes';
 import { SIDEBAR_CONFIG, DEFAULT_SIDEBAR_CONFIG } from './app/shared/components/layout/sidebar/sidebar.config';
-import { LAYER_CONFIG, DEFAULT_LAYER_CONFIG } from './app/config/layer.config';
+import { LAYER_CONFIG, DEFAULT_LAYER_CONFIG } from './app/config/map/layer.config';
 
 bootstrapApplication(AppComponent, {
   providers: [

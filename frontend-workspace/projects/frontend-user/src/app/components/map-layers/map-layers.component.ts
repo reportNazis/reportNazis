@@ -41,7 +41,7 @@ import { LayerService } from '../../services/layer.service';
         <div class="space-y-3">
           <h4 class="text-xs font-semibold text-white/50 uppercase tracking-wider">Data Source</h4>
           <div class="grid grid-cols-1 gap-2">
-            @for (source of layerService.availableDataSources; track source.id) {
+            @for (source of layerService.availableDataSources(); track source.id) {
               <button 
                 (click)="layerService.setDataSource(source.id)"
                 class="flex items-center gap-3 p-3 rounded-xl border transition-all text-left group"
@@ -51,8 +51,9 @@ import { LayerService } from '../../services/layer.service';
                 [class.hover:bg-white/5]="!isActive(source.id)"
               >
                 <!-- Icon Placeholder -->
-                <div class="w-10 h-10 rounded-lg bg-gradient-to-br from-gray-700 to-gray-800 flex items-center justify-center shrink-0">
-                  <ng-container [ngSwitch]="source.id">
+                <div class="w-10 h-10 rounded-lg bg-gradient-to-br from-gray-700 to-gray-800 flex items-center justify-center shrink-0"> 
+                
+                <ng-container [ngSwitch]="source.id">
                     <span *ngSwitchCase="'co2'" class="text-green-400 text-xs font-bold">CO₂</span>
                     <span *ngSwitchCase="'price'" class="text-blue-400 text-xs font-bold">€</span>
                     <span *ngSwitchCase="'renewable'" class="text-yellow-400 text-xs font-bold">%</span>
@@ -79,26 +80,33 @@ import { LayerService } from '../../services/layer.service';
           </div>
         </div>
 
-        <!-- Section: Weather -->
+        <!-- Section: Political Spectrum -->
         <div class="space-y-3">
-          <h4 class="text-xs font-semibold text-white/50 uppercase tracking-wider">Weather</h4>
+          <h4 class="text-xs font-semibold text-white/50 uppercase tracking-wider">Political Spectrum</h4>
           <div class="flex flex-wrap gap-2">
-            @for (layer of layerService.weatherLayers(); track layer.id) {
+            @for (layer of layerService.politicalSpectrum(); track layer.id) {
               <button 
-                (click)="layerService.toggleWeatherLayer(layer.id)"
+                (click)="layerService.togglePoliticalSpectrumLayer(layer.id)"
                 class="flex items-center gap-2 px-3 py-2 rounded-full border text-xs font-medium transition-all"
-                [class.bg-white]="layer.active"
-                [class.text-black]="layer.active"
-                [class.border-transparent]="layer.active"
+                [style.background-color]="layer.active ? layer.hexColor : null"
+                [style.border-color]="layer.active ? layer.hexColor : null"
+                [class.text-white]="layer.active" 
                 [class.bg-transparent]="!layer.active"
                 [class.text-white/70]="!layer.active"
                 [class.border-white/20]="!layer.active"
                 [class.hover:bg-white/5]="!layer.active"
               >
-                 <ng-container [ngSwitch]="layer.id">
-                    <span *ngSwitchCase="'wind'">💨</span>
-                    <span *ngSwitchCase="'solar'">☀️</span>
-                 </ng-container>
+
+              <ng-container>
+                @switch (layer.id) {
+                  @case ('links') {
+                    <span>💨</span>
+                  }
+                  @case ('rechts') {
+                    <span>☀️</span>
+                  }
+                }
+              </ng-container>
                 {{ layer.label }}
               </button>
             }

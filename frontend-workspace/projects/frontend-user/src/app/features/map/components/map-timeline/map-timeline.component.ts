@@ -2,7 +2,7 @@ import { Component, EventEmitter, input, OnInit, Output, HostListener, ViewChild
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
-import { TimelineConfig, DEFAULT_TIMELINE_CONFIG } from './map-timeline.config';
+import { TimelineConfig, DEFAULT_TIMELINE_CONFIG } from '../../../../config/map/map-timeline.config';
 
 type RangeOption = { label: string; value: string; allowedIntervals: string[] };
 type IntervalOption = { label: string; value: string };

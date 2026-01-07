@@ -1,13 +1,13 @@
 import { Component, input, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { PollutionColorService } from '../../../../core/services/pollution-color.service';
-import { LegendConfig, DEFAULT_LEGEND_CONFIG } from './map-legend.config';
+import { LegendData } from '../../../../models/layer.types';
 
 @Component({
-    selector: 'app-map-legend',
-    standalone: true,
-    imports: [CommonModule],
-    template: `
+   selector: 'app-map-legend',
+   standalone: true,
+   imports: [CommonModule],
+   template: `
     <div class="absolute bottom-6 right-6 z-20 flex flex-col items-end space-y-2">
        <div class="bg-gray-800/90 border border-gray-700 rounded-xl px-4 py-3 shadow-xl backdrop-blur-md">
           <div class="flex justify-between items-center mb-2">
@@ -22,22 +22,22 @@ import { LegendConfig, DEFAULT_LEGEND_CONFIG } from './map-legend.config';
 
           <!-- Labels -->
           <div class="w-64 flex justify-between text-[10px] text-gray-400 font-mono font-medium">
-             <span *ngFor="let label of config().labels">{{ label }}</span>
+             <span *ngFor="let label of config().breakpoints">{{ label }}</span>
           </div>
        </div>
     </div>
   `
 })
 export class MapLegendComponent implements OnInit {
-    config = input<LegendConfig>(DEFAULT_LEGEND_CONFIG);
+   config = input.required<LegendData>();
 
-    gradientStyle = '';
+   gradientStyle = '';
 
-    constructor(private colorService: PollutionColorService) { }
+   constructor(private colorService: PollutionColorService) { }
 
-    ngOnInit(): void {
-        const colors = this.colorService.getGradientColors();
-        this.gradientStyle = `linear-gradient(to right, ${colors.join(', ')})`;
-    }
+   ngOnInit(): void {
+      const colors = this.colorService.getGradientColors();
+      this.gradientStyle = `linear-gradient(to right, ${colors.join(', ')})`;
+   }
 }
 
