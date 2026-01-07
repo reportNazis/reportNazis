@@ -1,6 +1,6 @@
-import { Component, EventEmitter, Input, OnInit, Output, OnChanges, SimpleChanges } from '@angular/core';
+import { Component, EventEmitter, Input, OnInit, Output, OnChanges, SimpleChanges, HostListener, ViewChild, ElementRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { FormsModule } from '@angular/forms'; // For ngModel if we used it, but let's stick to simple change handlers or Event binding
+import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
 
 export interface TimelineConfig {
@@ -16,100 +16,95 @@ type IntervalOption = { label: string; value: string };
   standalone: true,
   imports: [CommonModule, FormsModule],
   template: `
-    <div class="absolute bottom-6 left-6 z-20 hidden md:block group">
-       <!-- Controls Header -->
-       <div class="absolute bottom-full left-0 mb-2 flex space-x-2 transition-opacity duration-200"
-            [class.opacity-0]="!isHovered && !isMenuOpen" 
-            [class.opacity-100]="isHovered || isMenuOpen">
-          
-          <!-- Range Dropdown -->
-          <div class="relative">
-             <button (click)="toggleRangeMenu()"
-                     class="bg-gray-900/90 text-white text-xs font-bold px-3 py-2 rounded-lg border border-gray-700 hover:bg-gray-800 flex items-center gap-2 shadow-lg backdrop-blur">
-                {{ getLabelForRange(config.range) }}
-                <svg class="w-3 h-3 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
-             </button>
-             
-             <div *ngIf="showRangeMenu" class="absolute bottom-full left-0 mb-1 w-40 bg-gray-900 border border-gray-700 rounded-lg shadow-xl overflow-hidden z-50">
-                <button *ngFor="let opt of rangeOptions" 
-                        (click)="selectRange(opt.value)"
-                        class="w-full text-left px-4 py-2 text-xs text-gray-300 hover:bg-gray-800 hover:text-white transition-colors border-b border-gray-800 last:border-0 block">
-                  {{ opt.label }}
-                </button>
-             </div>
-          </div>
-
-          <!-- Interval Dropdown -->
-          <div class="relative">
-             <button (click)="toggleIntervalMenu()"
-                     class="bg-gray-900/90 text-white text-xs font-bold px-3 py-2 rounded-lg border border-gray-700 hover:bg-gray-800 flex items-center gap-2 shadow-lg backdrop-blur">
-                {{ getLabelForInterval(config.interval) }}
-                <svg class="w-3 h-3 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
-             </button>
-             
-             <div *ngIf="showIntervalMenu" class="absolute bottom-full left-0 mb-1 w-32 bg-gray-900 border border-gray-700 rounded-lg shadow-xl overflow-hidden z-50">
-                <button *ngFor="let opt of getAvailableIntervals()" 
-                        (click)="selectInterval(opt.value)"
-                        class="w-full text-left px-4 py-2 text-xs text-gray-300 hover:bg-gray-800 hover:text-white transition-colors border-b border-gray-800 last:border-0 block">
-                  {{ opt.label }}
-                </button>
-             </div>
-          </div>
-       </div>
-
-       <!-- Main Timeline Bar -->
-       <div class="bg-gray-800/90 border border-gray-700 rounded-xl p-4 shadow-xl backdrop-blur-md min-w-[360px] relative"
-            (mouseenter)="isHovered = true" (mouseleave)="isHovered = false">
+    <div class="absolute bottom-6 left-6 z-20 md:block group">
+       <!-- Main Container -->
+       <div class="bg-[#1a1c1e]/90 border border-gray-700/30 rounded-2xl p-5 shadow-2xl backdrop-blur-xl w-fit min-w-[480px] relative transition-all duration-300">
             
-          <!-- Info Row -->
-          <div class="flex items-center justify-between mb-4">
-             <div>
-                <div class="text-xs text-gray-400">{{ timelineDate | date:'mediumDate' }},</div>
-                <div class="text-sm font-bold text-white flex items-center gap-2">
-                  {{ timelineDate | date:'HH:mm' }} 
-                  <span *ngIf="config.range === 'live'" class="relative flex h-2 w-2">
-                     <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
-                     <span class="relative inline-flex rounded-full h-2 w-2 bg-red-500"></span>
-                  </span>
+          <!-- Header Area -->
+          <div class="flex items-start justify-between gap-12 mb-8">
+             <!-- Date & Time (Stacked) -->
+             <div class="flex flex-col">
+                <div class="text-[14px] font-medium text-gray-300 leading-tight">
+                  {{ timelineDate | date:'d. MMM. y,' }}
+                </div>
+                <div class="flex items-center gap-2 mt-0.5">
+                   <div class="text-[20px] font-bold text-white tracking-tight">
+                     {{ timelineDate | date:'HH:mm' }} MEZ
+                   </div>
+                   <!-- Live Icon -->
+                   <div *ngIf="config.range === 'live'" class="flex items-center gap-1.5 ml-1 text-red-500 opacity-80">
+                      <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                         <circle cx="12" cy="12" r="2" fill="currentColor"></circle>
+                         <path d="M16.24 7.76a6 6 0 0 1 0 8.48m-8.48 0a6 6 0 0 1 0-8.48m11.31-2.82a10 10 0 0 1 0 14.14m-14.14 0a10 10 0 0 1 0-14.14"></path>
+                      </svg>
+                   </div>
                 </div>
              </div>
-             
-             <!-- Navigation Arrows (for days/months) -->
-             <div class="flex items-center space-x-1">
-                <button (click)="shiftTime(-1)" class="w-8 h-8 rounded-full bg-black/40 hover:bg-gray-700 text-white flex items-center justify-center transition-colors">
-                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path></svg>
-                </button>
-                <button (click)="shiftTime(1)" class="w-8 h-8 rounded-full bg-black/40 hover:bg-gray-700 text-white flex items-center justify-center transition-colors">
-                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path></svg>
-                </button>
+
+             <!-- Controls Side -->
+             <div class="flex items-center bg-black/40 rounded-xl p-1 border border-white/10">
+                <!-- Range Dropdown -->
+                <div class="relative border-r border-white/10 last:border-0 px-1">
+                   <button (click)="toggleRangeMenu()"
+                           class="text-white text-sm font-bold px-3 py-2 hover:bg-white/5 rounded-lg flex items-center gap-2 transition-colors whitespace-nowrap min-w-[100px] justify-between group/btn">
+                      {{ getLabelForRange(config.range) }}
+                      <svg class="w-4 h-4 text-gray-400 group-hover/btn:text-white transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M19 11l-7 7-7-7"></path></svg>
+                   </button>
+                   
+                   <div *ngIf="showRangeMenu" class="absolute bottom-full left-0 mb-3 w-48 bg-[#1a1c1e] border border-gray-700 rounded-xl shadow-2xl overflow-hidden z-50">
+                      <button *ngFor="let opt of rangeOptions" 
+                              (click)="selectRange(opt.value)"
+                              class="w-full text-left px-4 py-2.5 text-sm text-gray-300 hover:bg-white/10 hover:text-white transition-colors border-b border-gray-800 last:border-0 block">
+                        {{ opt.label }}
+                      </button>
+                   </div>
+                </div>
+
+                <!-- Interval Dropdown -->
+                <div class="relative px-1">
+                   <button (click)="toggleIntervalMenu()"
+                           class="text-white text-sm font-bold px-3 py-2 hover:bg-white/5 rounded-lg flex items-center gap-2 transition-colors whitespace-nowrap min-w-[100px] justify-between group/btn">
+                      {{ getLabelForInterval(config.interval) }}
+                      <svg class="w-4 h-4 text-gray-400 group-hover/btn:text-white transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M19 11l-7 7-7-7"></path></svg>
+                   </button>
+                   
+                   <div *ngIf="showIntervalMenu" class="absolute bottom-full left-0 mb-3 w-40 bg-[#1a1c1e] border border-gray-700 rounded-xl shadow-2xl overflow-hidden z-50">
+                      <button *ngFor="let opt of getAvailableIntervals()" 
+                              (click)="selectInterval(opt.value)"
+                              class="w-full text-left px-4 py-2.5 text-sm text-gray-300 hover:bg-white/10 hover:text-white transition-colors border-b border-gray-800 last:border-0 block">
+                        {{ opt.label }}
+                      </button>
+                   </div>
+                </div>
              </div>
           </div>
           
           <!-- Slider Track -->
-          <div class="relative w-full h-10 bg-black/20 rounded flex items-center px-4 border border-gray-700/50 cursor-pointer"
+          <div #track class="relative w-full h-[6px] bg-white/10 rounded-full flex items-center select-none cursor-pointer mb-8"
                (click)="onTrackClick($event)">
              
-             <!-- Ticks -->
-             <div class="absolute inset-x-4 bottom-1 flex justify-between pointer-events-none">
-                 <div *ngFor="let tick of ticks" class="h-1 w-px bg-gray-600"></div>
+             <!-- Ticks with Labels -->
+             <div class="absolute inset-x-0 bottom-[-28px] flex justify-between pointer-events-none px-1">
+                 <div *ngFor="let tick of ticks; let i = index" class="flex flex-col items-center">
+                    <div class="h-1.5 w-[1.5px] bg-gray-600/50 mb-1.5"></div>
+                    <!-- Sample dynamic labels for look (Simplified) -->
+                    <span *ngIf="i % 4 === 0" class="text-[10px] text-gray-500 font-bold whitespace-nowrap">
+                       {{ i === 0 ? 'Start' : (i === 8 ? '7. Jan.' : '') }}
+                    </span>
+                 </div>
              </div>
 
-             <!-- Filled Bar -->
-             <div class="absolute left-4 h-1.5 bg-gray-600 rounded-full overflow-hidden" [style.right.px]="16">
-               <div class="h-full bg-gradient-to-r from-green-500 via-yellow-500 to-red-500 opacity-80" [style.width.%]="progress"></div>
+             <!-- Handle (Circular now) -->
+             <div #handle class="absolute top-1/2 -translate-y-1/2 w-9 h-9 bg-[#1a1c1e] border-2 rounded-full shadow-2xl cursor-grab active:cursor-grabbing flex items-center justify-center text-white z-10 outline-none focus:ring-4 focus:ring-[#4ade80]/20"
+                  [class.border-[#4ade80]]="isActive"
+                  [class.border-gray-500]="!isActive"
+                  [style.left]="'calc(' + progress + '% - ' + (progress * 0.36) + 'px)'"
+                  style="transform: translateY(-50%); transition: none;"
+                  tabindex="0"
+                  (mousedown)="onHandleMouseDown($event)">
+                  <!-- Icon: <> -->
+                  <svg class="w-4 h-4 pointer-events-none" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M8 9l-3 3 3 3m8-6l3 3-3 3"></path></svg>
              </div>
-
-             <!-- Handle -->
-             <div class="absolute w-4 h-4 bg-white border-2 border-gray-800 rounded-full shadow-lg cursor-grab active:cursor-grabbing hover:scale-110 transition-transform z-10"
-                  [style.left.%]="progress"
-                  style="transform: translateX(-50%); margin-left: 16px; margin-right: 16px;"> <!-- Crude positioning fix -->
-             </div>
-          </div>
-
-          <!-- Labels -->
-          <div class="flex justify-between text-[10px] text-gray-500 mt-2 font-mono uppercase tracking-wider">
-             <span>Start</span>
-             <span>End</span>
           </div>
        </div>
     </div>
@@ -118,13 +113,16 @@ type IntervalOption = { label: string; value: string };
 export class MapTimelineComponent implements OnInit, OnChanges {
   @Input() config: TimelineConfig = { range: 'live', interval: '15m' };
   @Output() dateChange = new EventEmitter<Date>();
+  @ViewChild('track') trackRef!: ElementRef<HTMLElement>;
+  @ViewChild('handle') handleRef!: ElementRef<HTMLElement>;
 
-  isHovered = false;
   showRangeMenu = false;
   showIntervalMenu = false;
 
   timelineDate = new Date();
   progress = 100; // Percentage 0-100
+  isDragging = false;
+  isActive = false; // Simple switch for green border and interaction focus
 
   // Configuration Constants
   rangeOptions: RangeOption[] = [
@@ -143,7 +141,7 @@ export class MapTimelineComponent implements OnInit, OnChanges {
     { label: 'Yearly', value: '1y' },
   ];
 
-  ticks = new Array(12);
+  ticks = new Array(48);
 
   constructor(private router: Router) { }
 
@@ -156,8 +154,6 @@ export class MapTimelineComponent implements OnInit, OnChanges {
       this.timelineDate = new Date();
     }
   }
-
-  get isMenuOpen() { return this.showRangeMenu || this.showIntervalMenu; }
 
   toggleRangeMenu() { this.showRangeMenu = !this.showRangeMenu; this.showIntervalMenu = false; }
   toggleIntervalMenu() { this.showIntervalMenu = !this.showIntervalMenu; this.showRangeMenu = false; }
@@ -188,23 +184,76 @@ export class MapTimelineComponent implements OnInit, OnChanges {
     this.router.navigate(['map', range, interval]);
   }
 
-  // Interaction (Mock)
-  shiftTime(direction: number) {
-    // Logic to shift date window
-    console.log('Shift time', direction);
-  }
+  // --- Slider Interaction ---
 
   onTrackClick(e: MouseEvent) {
-    // Simple click to seek logic
-    const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
-    const x = e.clientX - rect.left - 16; // Padding adjust
-    const width = rect.width - 32;
-    let pct = (x / width) * 100;
-    pct = Math.max(0, Math.min(100, pct));
-    this.progress = pct;
+    if (this.isDragging) return;
+    this.isActive = true;
+    this.updateProgressFromEvent(e);
+  }
 
-    // Calculate simulated date from progress
-    // For now, just emit 'now'
+  onHandleMouseDown(e: MouseEvent) {
+    e.preventDefault();
+    e.stopPropagation();
+    this.isDragging = true;
+    this.isActive = true;
+  }
+
+  @HostListener('document:mousemove', ['$event'])
+  onMouseMove(e: MouseEvent) {
+    if (!this.isDragging) return;
+    this.updateProgressFromEvent(e);
+  }
+
+  @HostListener('document:mouseup')
+  onMouseUp() {
+    this.isDragging = false;
+    // isActive stays true as requested until deactivated elsewhere
+  }
+
+  @HostListener('document:mousedown', ['$event'])
+  onDocumentMouseDown(e: MouseEvent) {
+    // If we click outside the component (track and handle), deactivate
+    const target = e.target as HTMLElement;
+    const clickedInside = this.trackRef?.nativeElement.contains(target) ||
+      this.handleRef?.nativeElement.contains(target);
+
+    if (!clickedInside) {
+      this.isActive = false;
+    }
+  }
+
+  @HostListener('document:keydown', ['$event'])
+  onDocumentKeyDown(e: KeyboardEvent) {
+    if (!this.isActive) return;
+
+    // Support navigation via document-level listener
+    const step = e.shiftKey ? 10 : 2;
+    if (e.key === 'ArrowLeft') {
+      this.progress = Math.max(0, this.progress - step);
+      this.emitChange();
+    } else if (e.key === 'ArrowRight') {
+      this.progress = Math.min(100, this.progress + step);
+      this.emitChange();
+    } else if (e.key === 'Escape') {
+      this.isActive = false;
+    }
+  }
+
+  private updateProgressFromEvent(e: MouseEvent) {
+    if (!this.trackRef) return;
+
+    const rect = this.trackRef.nativeElement.getBoundingClientRect();
+    const relX = e.clientX - rect.left;
+
+    let pct = (relX / rect.width) * 100;
+    pct = Math.max(0, Math.min(100, pct));
+
+    this.progress = pct;
+    this.emitChange();
+  }
+
+  private emitChange() {
     this.dateChange.emit(new Date());
   }
 }
