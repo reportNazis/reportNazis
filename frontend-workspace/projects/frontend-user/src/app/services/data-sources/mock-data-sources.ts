@@ -13,7 +13,7 @@ export class Co2DataSource implements IMapDataSource {
             scale: 'linear',
             min: 0,
             max: 800,
-            unit: 'gCO2eq/kWh',
+            unit: 'test',
             colorScheme: 'carbon' // mapped in component
         });
     }

@@ -1,12 +1,8 @@
-import { Component, EventEmitter, Input, OnInit, Output, OnChanges, SimpleChanges, HostListener, ViewChild, ElementRef } from '@angular/core';
+import { Component, EventEmitter, input, OnInit, Output, HostListener, ViewChild, ElementRef, effect } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
-
-export interface TimelineConfig {
-  range: string;   // e.g. 'live', '24h', '30d'
-  interval: string; // e.g. '15m', '1h', '1d'
-}
+import { TimelineConfig, DEFAULT_TIMELINE_CONFIG } from './map-timeline.config';
 
 type RangeOption = { label: string; value: string; allowedIntervals: string[] };
 type IntervalOption = { label: string; value: string };
@@ -32,7 +28,7 @@ type IntervalOption = { label: string; value: string };
                      {{ timelineDate | date:'HH:mm' }} MEZ
                    </div>
                    <!-- Live Icon -->
-                   <div *ngIf="config.range === 'live'" class="flex items-center gap-1.5 ml-1 text-red-500 opacity-80">
+                   <div *ngIf="config().range === 'live'" class="flex items-center gap-1.5 ml-1 text-red-500 opacity-80">
                       <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
                          <circle cx="12" cy="12" r="2" fill="currentColor"></circle>
                          <path d="M16.24 7.76a6 6 0 0 1 0 8.48m-8.48 0a6 6 0 0 1 0-8.48m11.31-2.82a10 10 0 0 1 0 14.14m-14.14 0a10 10 0 0 1 0-14.14"></path>
@@ -47,7 +43,7 @@ type IntervalOption = { label: string; value: string };
                 <div class="relative border-r border-white/10 last:border-0 px-1">
                    <button (click)="toggleRangeMenu()"
                            class="text-white text-sm font-bold px-3 py-2 hover:bg-white/5 rounded-lg flex items-center gap-2 transition-colors whitespace-nowrap min-w-[100px] justify-between group/btn">
-                      {{ getLabelForRange(config.range) }}
+                      {{ getLabelForRange(config().range) }}
                       <svg class="w-4 h-4 text-gray-400 group-hover/btn:text-white transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M19 11l-7 7-7-7"></path></svg>
                    </button>
                    
@@ -64,7 +60,7 @@ type IntervalOption = { label: string; value: string };
                 <div class="relative px-1">
                    <button (click)="toggleIntervalMenu()"
                            class="text-white text-sm font-bold px-3 py-2 hover:bg-white/5 rounded-lg flex items-center gap-2 transition-colors whitespace-nowrap min-w-[100px] justify-between group/btn">
-                      {{ getLabelForInterval(config.interval) }}
+                      {{ getLabelForInterval(config().interval) }}
                       <svg class="w-4 h-4 text-gray-400 group-hover/btn:text-white transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M19 11l-7 7-7-7"></path></svg>
                    </button>
                    
@@ -110,8 +106,9 @@ type IntervalOption = { label: string; value: string };
     </div>
   `
 })
-export class MapTimelineComponent implements OnInit, OnChanges {
-  @Input() config: TimelineConfig = { range: 'live', interval: '15m' };
+export class MapTimelineComponent implements OnInit {
+  config = input<TimelineConfig>(DEFAULT_TIMELINE_CONFIG);
+
   @Output() dateChange = new EventEmitter<Date>();
   @ViewChild('track') trackRef!: ElementRef<HTMLElement>;
   @ViewChild('handle') handleRef!: ElementRef<HTMLElement>;
@@ -143,17 +140,16 @@ export class MapTimelineComponent implements OnInit, OnChanges {
 
   ticks = new Array(48);
 
-  constructor(private router: Router) { }
+  constructor(private router: Router) {
+    effect(() => {
+      // React to config changes
+      const currentConfig = this.config();
+      this.progress = 100;
+      this.timelineDate = new Date();
+    });
+  }
 
   ngOnInit() { }
-
-  ngOnChanges(changes: SimpleChanges): void {
-    if (changes['config']) {
-      // Reset or adjust state based on new config
-      this.progress = 100; // Reset to latest on config change?
-      this.timelineDate = new Date();
-    }
-  }
 
   toggleRangeMenu() { this.showRangeMenu = !this.showRangeMenu; this.showIntervalMenu = false; }
   toggleIntervalMenu() { this.showIntervalMenu = !this.showIntervalMenu; this.showRangeMenu = false; }
@@ -162,10 +158,11 @@ export class MapTimelineComponent implements OnInit, OnChanges {
   getLabelForInterval(val: string) { return this.intervalOptions.find(o => o.value === val)?.label || val; }
 
   getAvailableIntervals() {
-    const currentRangeOpt = this.rangeOptions.find(r => r.value === this.config.range);
+    const currentRangeOpt = this.rangeOptions.find(r => r.value === this.config().range);
     if (!currentRangeOpt) return this.intervalOptions;
     return this.intervalOptions.filter(i => currentRangeOpt.allowedIntervals.includes(i.value));
   }
+
 
   selectRange(range: string) {
     const opt = this.rangeOptions.find(r => r.value === range);
@@ -176,7 +173,7 @@ export class MapTimelineComponent implements OnInit, OnChanges {
   }
 
   selectInterval(interval: string) {
-    this.navigate(this.config.range, interval);
+    this.navigate(this.config().range, interval);
     this.showIntervalMenu = false;
   }
 

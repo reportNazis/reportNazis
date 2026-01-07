@@ -92,13 +92,13 @@ import { CommonModule } from '@angular/common';
                    
                    <div *ngIf="isAboutOpen()" class="mt-2 text-xs text-gray-400 leading-relaxed animate-in fade-in duration-200">
                         <p class="mb-2">
-                            reportNazis bietet eine Open Source Intelligence API die in Echtzeit Informationen über rechte Strukturen liefert.
+                            reportNazis bietet eine Open Source Intelligence Plattform die in Echtzeit Informationen über rechte Strukturen liefert.
                         </p>
                         <div class="flex flex-col gap-1 mt-3">
                             <a href="#" class="text-emerald-500 hover:text-emerald-400 hover:underline">Privacy Policy</a>
                             <a href="#" class="text-emerald-500 hover:text-emerald-400 hover:underline">Legal Notice</a>
                         </div>
-                        <p class="mt-3 text-white/30">App-Version: 2026.01-e96233</p>
+                        <p class="mt-3 text-white/30">App-Version: to-be-integrated</p>
                    </div>
                 </div>
 

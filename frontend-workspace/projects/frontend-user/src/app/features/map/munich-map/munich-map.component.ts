@@ -13,8 +13,10 @@ import { MapAnimationsService } from '../services/map-animations.service';
 import { ModalComponent } from '../../../shared/components/modal/modal.component';
 import { MapNavbarComponent } from '../components/map-navbar/map-navbar.component';
 import { MapSettingsComponent } from '../components/map-settings/map-settings.component';
-import { MapLegendComponent, LegendConfig } from '../components/map-legend/map-legend.component';
-import { MapTimelineComponent, TimelineConfig } from '../components/map-timeline/map-timeline.component';
+import { MapLegendComponent } from '../components/map-legend/map-legend.component';
+import { LegendConfig } from '../components/map-legend/map-legend.config';
+import { MapTimelineComponent } from '../components/map-timeline/map-timeline.component';
+import { TimelineConfig } from '../components/map-timeline/map-timeline.config';
 import { MapLayersComponent } from '../../../components/map-layers/map-layers.component';
 import { LayerService } from '../../../services/layer.service';
 

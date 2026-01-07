@@ -1,12 +1,7 @@
-import { Component, Input, OnInit } from '@angular/core';
+import { Component, input, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { PollutionColorService } from '../../../../core/services/pollution-color.service';
-
-export interface LegendConfig {
-    title: string;
-    unit: string;
-    labels: string[];
-}
+import { LegendConfig, DEFAULT_LEGEND_CONFIG } from './map-legend.config';
 
 @Component({
     selector: 'app-map-legend',
@@ -16,8 +11,8 @@ export interface LegendConfig {
     <div class="absolute bottom-6 right-6 z-20 flex flex-col items-end space-y-2">
        <div class="bg-gray-800/90 border border-gray-700 rounded-xl px-4 py-3 shadow-xl backdrop-blur-md">
           <div class="flex justify-between items-center mb-2">
-            <span class="text-xs font-bold text-white tracking-wide">{{ config.title }}</span>
-            <span class="text-xs text-gray-400 font-mono">{{ config.unit }}</span>
+            <span class="text-xs font-bold text-white tracking-wide">{{ config().title }}</span>
+            <span class="text-xs text-gray-400 font-mono">{{ config().unit }}</span>
           </div>
           
           <!-- Gradient Bar -->
@@ -27,18 +22,14 @@ export interface LegendConfig {
 
           <!-- Labels -->
           <div class="w-64 flex justify-between text-[10px] text-gray-400 font-mono font-medium">
-             <span *ngFor="let label of config.labels">{{ label }}</span>
+             <span *ngFor="let label of config().labels">{{ label }}</span>
           </div>
        </div>
     </div>
   `
 })
 export class MapLegendComponent implements OnInit {
-    @Input() config: LegendConfig = {
-        title: 'Pollution',
-        unit: 'AQI',
-        labels: ['Low', 'Med', 'High'] // Default
-    };
+    config = input<LegendConfig>(DEFAULT_LEGEND_CONFIG);
 
     gradientStyle = '';
 
@@ -49,3 +40,4 @@ export class MapLegendComponent implements OnInit {
         this.gradientStyle = `linear-gradient(to right, ${colors.join(', ')})`;
     }
 }
+
