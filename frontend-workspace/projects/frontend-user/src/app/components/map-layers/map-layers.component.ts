@@ -10,7 +10,7 @@ import { LayerService } from '../../services/layer.service';
     <!-- Floating Button (Bottom Right) -->
     <button 
       (click)="toggleMenu()"
-      class="absolute bottom-6 right-80 z-50 bg-white/10 backdrop-blur-md border border-white/20 p-3 rounded-full shadow-lg hover:bg-white/20 transition-all active:scale-95 text-white"
+      class="absolute bottom-9 right-80 z-50 bg-white/10 backdrop-blur-md border border-white/20 p-3 rounded-full shadow-lg hover:bg-white/20 transition-all active:scale-95 text-white"
       [class.hidden]="isOpen()"
       aria-label="Layers"
     >

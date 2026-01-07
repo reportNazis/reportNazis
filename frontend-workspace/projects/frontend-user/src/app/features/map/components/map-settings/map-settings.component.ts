@@ -1,5 +1,6 @@
-import { Component, EventEmitter, Output, signal } from '@angular/core';
+import { Component, EventEmitter, Output, signal, inject, computed } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { LayerService } from '../../../../services/layer.service';
 
 @Component({
   selector: 'app-map-settings',
@@ -25,6 +26,40 @@ import { CommonModule } from '@angular/common';
                 (click)="$event.stopPropagation()"
                 class="absolute top-0 right-14 w-80 bg-[#1a1c22]/95 backdrop-blur-xl border border-white/10 rounded-2xl shadow-2xl p-4 z-30 animate-in fade-in slide-in-from-right-2 duration-200"
             >
+               <!-- Political Spectrum Toggle -->
+               <div class="mb-6 relative border-b border-white/5">
+                <div class="mt-2 text-xs text-gray-400 leading-relaxed animate-in fade-in duration-200">
+                   </div>
+                   <div class="relative flex w-full h-10 bg-gray-900/80 rounded-full p-1 cursor-pointer border border-white/5 shadow-inner">
+                       <!-- Sliding Pill -->
+                       <div class="absolute h-8 w-[calc(50%-4px)] rounded-full transition-all duration-300 ease-out shadow-md z-0"
+                            [style.backgroundColor]="activeSpectrumColor()"
+                            [class.translate-x-0]="activeSpectrumLayer()?.id === spectrumLayers()[0]?.id"
+                            [class.translate-x-[calc(100%+8px)]]="activeSpectrumLayer()?.id === spectrumLayers()[1]?.id"
+                       ></div>
+
+                       <!-- Labels -->
+                       <div *ngFor="let layer of spectrumLayers()" 
+                            class="flex-1 z-10 flex items-center justify-center transition-colors duration-200"
+                            (click)="toggleSpectrum(layer.id)"
+                       >
+                           <span class="text-sm font-semibold tracking-wide"
+                                 [class.text-white]="activeSpectrumLayer()?.id === layer.id"
+                                 [class.text-gray-400]="activeSpectrumLayer()?.id !== layer.id"
+                                 [class.hover:text-gray-200]="activeSpectrumLayer()?.id !== layer.id"
+                           >
+                               {{ layer.label }}
+                           </span>
+                       </div>
+                   </div>
+                   <div class="mt-3 text-xs text-gray-400">
+                    <p class="mb-2 ml-3 mr-3">
+                      Wechsel zwischen Datensätzen der linken und rechten Szene.
+                   </p>
+                   </div>
+                   
+               </div>
+
                <!-- Theme Toggle -->
                 <div class="mb-6">
                     <h3 class="text-sm font-medium text-gray-400 mb-3">Thema ändern</h3>
@@ -137,6 +172,26 @@ export class MapSettingsComponent {
   isAboutOpen = signal(true); // Default open as per screenshot
   theme = signal<'light' | 'dark' | 'system'>('system');
   isColorblind = signal<boolean>(false);
+
+  private layerService = inject(LayerService);
+
+  // Political Spectrum Logic
+  spectrumLayers = this.layerService.politicalSpectrum;
+
+  activeSpectrumLayer = computed(() => {
+    // Find the active layer from the spectrum layers list
+    // verification: layer.Service returns them with an 'active' boolean but we also know the active type
+    const type = this.layerService.activeDataSourceType(); // 'links' or 'rechts'
+    return this.spectrumLayers().find(l => l.dataSourceType === type);
+  });
+
+  activeSpectrumColor = computed(() => {
+    return this.activeSpectrumLayer()?.hexColor || '#4B5563'; // Fallback to gray-600
+  });
+
+  toggleSpectrum(layerId: string) {
+    this.layerService.togglePoliticalSpectrumLayer(layerId);
+  }
 
   toggleSettings() {
     this.isOpen.update(v => !v);

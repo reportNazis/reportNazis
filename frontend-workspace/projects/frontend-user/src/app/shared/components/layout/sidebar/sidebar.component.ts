@@ -14,7 +14,7 @@ export class SidebarComponent {
   private sidebarService = inject(SidebarService);
 
   config = this.sidebarService.config;
-  isExpanded = signal(true); // Default to expanded based on screenshots
+  isExpanded = signal(false); // Default to collapsed
 
   topButtons = computed(() => this.config.buttons.filter(b => b.position === 'top'));
   bottomButtons = computed(() => this.config.buttons.filter(b => b.position === 'bottom'));
@@ -23,3 +23,4 @@ export class SidebarComponent {
     this.isExpanded.update(val => !val);
   }
 }
+
