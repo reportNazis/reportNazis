@@ -11,11 +11,11 @@
       "prefix": "app",
       "architect": {
         "build": {
-          "builder": "@angular-devkit/build-angular:browser",
+          "builder": "@angular-devkit/build-angular:application",
           "options": {
             "outputPath": "dist/frontend-user",
             "index": "projects/frontend-user/src/index.html",
-            "main": "projects/frontend-user/src/main.ts",
+            "browser": "projects/frontend-user/src/main.ts",
             "polyfills": [
               "zone.js"
             ],
@@ -102,11 +102,11 @@
       "prefix": "app",
       "architect": {
         "build": {
-          "builder": "@angular-devkit/build-angular:browser",
+          "builder": "@angular-devkit/build-angular:application",
           "options": {
             "outputPath": "dist/frontend-admin",
             "index": "projects/frontend-admin/src/index.html",
-            "main": "projects/frontend-admin/src/main.ts",
+            "browser": "projects/frontend-admin/src/main.ts",
             "polyfills": [
               "zone.js"
             ],
