@@ -54,3 +54,7 @@ LANGUAGE_CODE = 'en-us'
 TIME_ZONE = 'UTC'
 USE_I18N = True
 USE_TZ = True
+
+# Zitadel Configuration
+ZITADEL_API_URL = os.environ.get('ZITADEL_ISSUER', 'http://zitadel:8080')
+ZITADEL_SERVICE_TOKEN_PATH = os.environ.get('ZITADEL_SERVICE_TOKEN_PATH', '/app/login-client.pat')

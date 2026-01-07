@@ -44,6 +44,8 @@ services:
       ZITADEL_EXTERNALDOMAIN: localhost
       ZITADEL_EXTERNALSECURE: "${ZITADEL_EXTERALSECURE}"
       ZITADEL_TLS_ENABLED: "${ZITADEL_TLS_ENABLED}"
+      ZITADEL_FIRSTINSTANCE_ORG_HUMAN_USERNAME: ${ZITADEL_FIRSTINSTANCE_ORG_HUMAN_USERNAME}
+      ZITADEL_FIRSTINSTANCE_ORG_HUMAN_PASSWORD: ${ZITADEL_FIRSTINSTANCE_ORG_HUMAN_PASSWORD}
 
       ZITADEL_DATABASE_POSTGRES_HOST: ${ZITADEL_DB_HOST}
       ZITADEL_DATABASE_POSTGRES_PORT: ${ZITADEL_DB_PORT}
@@ -156,9 +158,13 @@ services:
       - DB_NAME=${APP_DB_NAME}
       - DB_USER=${APP_DB_USER}
       - DB_PASSWORD=${APP_DB_PASSWORD}
-      - ZITADEL_ISSUER=http://zitadel:${ZITADEL_PORT}
+      - ZITADEL_ISSUER=http://zitadel:8080
+      - ZITADEL_SERVICE_TOKEN_PATH=/app/login-client.pat
+    volumes:
+      - ./login-client.pat:/app/login-client.pat:ro
     depends_on:
       - app-db
+      - zitadel
     deploy:
       replicas: 1
 
