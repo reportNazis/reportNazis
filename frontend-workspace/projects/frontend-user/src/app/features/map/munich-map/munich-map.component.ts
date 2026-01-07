@@ -1,4 +1,4 @@
-import { Component, OnInit, signal, OnDestroy } from '@angular/core';
+import { Component, OnInit, signal, OnDestroy, effect, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { SafeHtml } from '@angular/platform-browser';
 import { ActivatedRoute } from '@angular/router';
@@ -15,6 +15,8 @@ import { MapNavbarComponent } from '../components/map-navbar/map-navbar.componen
 import { MapSettingsComponent } from '../components/map-settings/map-settings.component';
 import { MapLegendComponent, LegendConfig } from '../components/map-legend/map-legend.component';
 import { MapTimelineComponent, TimelineConfig } from '../components/map-timeline/map-timeline.component';
+import { MapLayersComponent } from '../../../components/map-layers/map-layers.component';
+import { LayerService } from '../../../services/layer.service';
 
 @Component({
   selector: 'app-munich-map',
@@ -25,7 +27,8 @@ import { MapTimelineComponent, TimelineConfig } from '../components/map-timeline
     MapNavbarComponent,
     MapSettingsComponent,
     MapLegendComponent,
-    MapTimelineComponent
+    MapTimelineComponent,
+    MapLayersComponent
   ],
   template: `
     <div class="relative w-full h-full bg-gray-900 border-l border-gray-800 overflow-hidden group">
@@ -48,7 +51,6 @@ import { MapTimelineComponent, TimelineConfig } from '../components/map-timeline
       <app-map-settings
         (zoomIn)="handleZoomIn()"
         (zoomOut)="handleZoomOut()"
-        (openSettings)="handleOpenSettings()"
       ></app-map-settings>
 
       <!-- 4. Legend -->
@@ -59,6 +61,9 @@ import { MapTimelineComponent, TimelineConfig } from '../components/map-timeline
           [config]="timelineConfig"
           (dateChange)="handleDateChange($event)"
       ></app-map-timeline>
+
+      <!-- 6. Layers -->
+      <app-map-layers></app-map-layers>
 
       <!-- Modal -->
       <app-modal 
@@ -150,12 +155,31 @@ export class MunichMapComponent implements OnInit, OnDestroy {
     interval: '15m'
   };
 
+  private layerService = inject(LayerService);
+
   constructor(
     private mockData: MockDataService,
     private mapRenderer: MapRenderingService,
     private mapAnimations: MapAnimationsService,
     private route: ActivatedRoute
-  ) { }
+  ) {
+    // Effect to react to layer changes
+    effect(() => {
+      const activeSource = this.layerService.activeDataSource();
+      console.log('Active Data Source Changed:', activeSource);
+
+      // Update Legend Title based on active layer
+      this.legendConfig = {
+        ...this.legendConfig,
+        title: activeSource.label,
+        // TODO: Update unit based on source type (gCO2/kWh vs €/MWh)
+        unit: activeSource.id === 'price' ? '€/MWh' : 'gCO₂eq/kWh'
+      };
+
+      // TODO: Trigger map re-render with new color scale
+      // this.mapRenderer.updateTheme(activeSource.id); 
+    });
+  }
 
   ngOnInit(): void {
     // Initial Load of Map SVG

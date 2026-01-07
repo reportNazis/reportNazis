@@ -1,13 +1,13 @@
-import { Component, Input, SecurityContext, computed, inject } from '@angular/core';
+import { Component, computed, input } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterLink, RouterLinkActive } from '@angular/router';
-import { DomSanitizer, SafeHtml } from '@angular/platform-browser';
+import { MatIconModule } from '@angular/material/icon';
 import { SidebarButton } from '../sidebar.config';
 
 @Component({
   selector: 'app-sidebar-button',
   standalone: true,
-  imports: [CommonModule, RouterLink, RouterLinkActive],
+  imports: [CommonModule, RouterLink, RouterLinkActive, MatIconModule],
   templateUrl: './sidebar-button.component.html',
   styles: [`
     :host {
@@ -17,19 +17,11 @@ import { SidebarButton } from '../sidebar.config';
   `]
 })
 export class SidebarButtonComponent {
-  private sanitizer = inject(DomSanitizer);
-
-  @Input({ required: true }) config!: SidebarButton;
+  config = input.required<SidebarButton>();
+  isExpanded = input<boolean>(false);
 
   // This is a placeholder for checking active state if not using RouterLinkActive
   // or if we passed 'active' from config for visual testing.
   // Real active state comes from RouterLinkActive directive usually.
-  isActive = computed(() => this.config.active);
-
-  sanitizedIcon = computed(() => {
-    if (this.config.icon) {
-      return this.sanitizer.sanitize(SecurityContext.HTML, this.config.icon);
-    }
-    return null;
-  });
+  isActive = computed(() => this.config().active);
 }

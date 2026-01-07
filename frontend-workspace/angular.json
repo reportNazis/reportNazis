@@ -46,9 +46,6 @@
               "outputHashing": "all"
             },
             "development": {
-              "buildOptimizer": false,
-              "optimization": false,
-              "vendorChunk": true,
               "extractLicenses": false,
               "sourceMap": true,
               "namedChunks": true
@@ -60,10 +57,10 @@
           "builder": "@angular-devkit/build-angular:dev-server",
           "configurations": {
             "production": {
-              "browserTarget": "frontend-user:build:production"
+              "buildTarget": "frontend-user:build:production"
             },
             "development": {
-              "browserTarget": "frontend-user:build:development"
+              "buildTarget": "frontend-user:build:development"
             }
           },
           "defaultConfiguration": "development"
@@ -71,7 +68,7 @@
         "extract-i18n": {
           "builder": "@angular-devkit/build-angular:extract-i18n",
           "options": {
-            "browserTarget": "frontend-user:build"
+            "buildTarget": "frontend-user:build"
           }
         },
         "test": {
@@ -144,9 +141,6 @@
               ]
             },
             "development": {
-              "buildOptimizer": false,
-              "optimization": false,
-              "vendorChunk": true,
               "extractLicenses": false,
               "sourceMap": true,
               "namedChunks": true
@@ -158,10 +152,10 @@
           "builder": "@angular-devkit/build-angular:dev-server",
           "configurations": {
             "production": {
-              "browserTarget": "frontend-admin:build:production"
+              "buildTarget": "frontend-admin:build:production"
             },
             "development": {
-              "browserTarget": "frontend-admin:build:development"
+              "buildTarget": "frontend-admin:build:development"
             }
           },
           "defaultConfiguration": "development"
@@ -169,7 +163,7 @@
         "extract-i18n": {
           "builder": "@angular-devkit/build-angular:extract-i18n",
           "options": {
-            "browserTarget": "frontend-admin:build"
+            "buildTarget": "frontend-admin:build"
           }
         },
         "test": {

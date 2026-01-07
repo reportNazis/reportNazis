@@ -1,21 +1,25 @@
-import { Component, computed, inject } from '@angular/core';
+import { Component, computed, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { SidebarButtonComponent } from './sidebar-button/sidebar-button.component';
 import { SidebarService } from './sidebar.service';
+import { MatIconModule } from '@angular/material/icon';
 
 @Component({
   selector: 'app-sidebar',
   standalone: true,
-  imports: [CommonModule, SidebarButtonComponent],
+  imports: [CommonModule, SidebarButtonComponent, MatIconModule],
   templateUrl: './sidebar.component.html'
 })
 export class SidebarComponent {
-  private sidebarService = inject(SidebarService); // Injects service which validates routes
+  private sidebarService = inject(SidebarService);
 
-  // We can access config directly from service or inject token if preferred.
-  // Accessing via service allows service to potentially modify/filter config.
   config = this.sidebarService.config;
+  isExpanded = signal(true); // Default to expanded based on screenshots
 
   topButtons = computed(() => this.config.buttons.filter(b => b.position === 'top'));
   bottomButtons = computed(() => this.config.buttons.filter(b => b.position === 'bottom'));
+
+  toggleSidebar() {
+    this.isExpanded.update(val => !val);
+  }
 }
