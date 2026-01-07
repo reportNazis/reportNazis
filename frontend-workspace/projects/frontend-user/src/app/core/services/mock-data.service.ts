@@ -6,6 +6,12 @@ export interface PollutionData {
     score: number | null;
 }
 
+export interface LocationSearchResult {
+    name: string;
+    code: string;
+    emoji: string;
+}
+
 @Injectable({
     providedIn: 'root'
 })
@@ -86,6 +92,42 @@ export class MockDataService {
         });
 
         return of(adjustedData);
+    }
+
+    /**
+     * Searches for countries/regions based on a query string.
+     */
+    searchLocations(query: string): Observable<LocationSearchResult[]> {
+        if (!query.trim()) return of([]);
+
+        const mockLocations: LocationSearchResult[] = [
+            { name: 'Vereinigte Arabische Emirate', code: 'AE', emoji: '🇦🇪' },
+            { name: 'Afghanistan', code: 'AF', emoji: '🇦🇫' },
+            { name: 'Antigua und Barbuda', code: 'AG', emoji: '🇦🇬' },
+            { name: 'Angola', code: 'AO', emoji: '🇦🇴' },
+            { name: 'Argentinien', code: 'AR', emoji: '🇦🇷' },
+            { name: 'Bosnien und Herzegowina', code: 'BA', emoji: '🇧🇦' },
+            { name: 'Bangladesch', code: 'BD', emoji: '🇧🇩' },
+            { name: 'Belgien', code: 'BE', emoji: '🇧🇪' },
+            { name: 'Brasilien', code: 'BR', emoji: '🇧🇷' },
+            { name: 'Deutschland', code: 'DE', emoji: '🇩🇪' },
+            { name: 'Frankreich', code: 'FR', emoji: '🇫🇷' },
+            { name: 'Großbritannien', code: 'GB', emoji: '🇬🇧' },
+            { name: 'Italien', code: 'IT', emoji: '🇮🇹' },
+            { name: 'Japan', code: 'JP', emoji: '🇯🇵' },
+            { name: 'Kanada', code: 'CA', emoji: '🇨🇦' },
+            { name: 'Österreich', code: 'AT', emoji: '🇦🇹' },
+            { name: 'Schweiz', code: 'CH', emoji: '🇨🇭' },
+            { name: 'Spanien', code: 'ES', emoji: '🇪🇸' },
+            { name: 'USA', code: 'US', emoji: '🇺🇸' },
+        ];
+
+        const filtered = mockLocations.filter(loc =>
+            loc.name.toLowerCase().includes(query.toLowerCase()) ||
+            loc.code.toLowerCase().includes(query.toLowerCase())
+        );
+
+        return of(filtered);
     }
 }
 
