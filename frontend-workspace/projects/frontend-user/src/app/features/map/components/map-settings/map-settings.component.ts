@@ -86,13 +86,13 @@ import { CommonModule } from '@angular/common';
                 <!-- About Section -->
                 <div>
                    <button (click)="toggleAbout()" class="flex items-center justify-between w-full text-left group">
-                        <span class="text-sm font-bold text-gray-300 group-hover:text-white transition-colors">Über Electricity Maps</span>
+                        <span class="text-sm font-bold text-gray-300 group-hover:text-white transition-colors">Über reportNazis</span>
                         <svg [class.rotate-180]="isAboutOpen()" class="text-gray-500 transition-transform duration-200" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>
                    </button>
                    
                    <div *ngIf="isAboutOpen()" class="mt-2 text-xs text-gray-400 leading-relaxed animate-in fade-in duration-200">
                         <p class="mb-2">
-                            Electricity Maps bietet eine API, die Echtzeit- und prädiktive Stromnetzgsignale liefert.
+                            reportNazis bietet eine Open Source Intelligence API die in Echtzeit Informationen über rechte Strukturen liefert.
                         </p>
                         <div class="flex flex-col gap-1 mt-3">
                             <a href="#" class="text-emerald-500 hover:text-emerald-400 hover:underline">Privacy Policy</a>
