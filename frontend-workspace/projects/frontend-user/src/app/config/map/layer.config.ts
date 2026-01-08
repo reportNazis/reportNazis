@@ -95,7 +95,7 @@ export const DEFAULT_LAYER_CONFIG: LayerSourceConfig[] = [
         }
     },
 
-    // SECTION: Weather
+    // SECTION: Political Spectrum
 
     {
         id: 'links',

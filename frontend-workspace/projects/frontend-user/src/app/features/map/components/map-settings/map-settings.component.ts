@@ -1,6 +1,7 @@
 import { Component, EventEmitter, Output, signal, inject, computed } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { LayerService } from '../../../../services/layer.service';
+import { MapControlService } from '../../../../services/map-control.service';
 
 @Component({
   selector: 'app-map-settings',
@@ -142,12 +143,12 @@ import { LayerService } from '../../../../services/layer.service';
 
        <!-- Zoom Controls -->
        <div class="flex flex-col bg-gray-800/90 rounded-lg border border-gray-700 shadow-lg backdrop-blur-sm overflow-hidden">
-         <button (click)="zoomIn.emit()" class="w-10 h-10 hover:bg-gray-700 text-white flex items-center justify-center border-b border-gray-700 transition-colors">
+         <button (click)="zoomIn()" class="w-10 h-10 hover:bg-gray-700 text-white flex items-center justify-center border-b border-gray-700 transition-colors">
            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
              <path fill-rule="evenodd" d="M10 5a1 1 0 011 1v3h3a1 1 0 110 2h-3v3a1 1 0 11-2 0v-3H6a1 1 0 110-2h3V6a1 1 0 011-1z" clip-rule="evenodd" />
            </svg>
          </button>
-         <button (click)="zoomOut.emit()" class="w-10 h-10 hover:bg-gray-700 text-white flex items-center justify-center transition-colors">
+         <button (click)="zoomOut()" class="w-10 h-10 hover:bg-gray-700 text-white flex items-center justify-center transition-colors">
            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
              <path fill-rule="evenodd" d="M5 10a1 1 0 011-1h8a1 1 0 110 2H6a1 1 0 01-1-1z" clip-rule="evenodd" />
            </svg>
@@ -164,8 +165,9 @@ import { LayerService } from '../../../../services/layer.service';
   `
 })
 export class MapSettingsComponent {
-  @Output() zoomIn = new EventEmitter<void>();
-  @Output() zoomOut = new EventEmitter<void>();
+  private mapControlService = inject(MapControlService);
+  // @Output() zoomIn = new EventEmitter<void>();
+  // @Output() zoomOut = new EventEmitter<void>();
   // @Output() openSettings = new EventEmitter<void>(); // Removed in favor of internal modal
 
   isOpen = signal(false);
@@ -209,5 +211,13 @@ export class MapSettingsComponent {
   toggleColorblind() {
     this.isColorblind.update(v => !v);
     console.log('Colorblind mode:', this.isColorblind());
+  }
+
+  zoomIn() {
+    this.mapControlService.zoomIn();
+  }
+
+  zoomOut() {
+    this.mapControlService.zoomOut();
   }
 }

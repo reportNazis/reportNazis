@@ -46,6 +46,17 @@ graph TD
 - **Config Interface**: None.
 - **Has Config**: `false`
 
+### MapCanvasComponent
+- **File**: `map-canvas.ts`
+- **Description**: The background map layer utilizing MapLibre GL JS. It handles the core map rendering, tile loading, and user interactions (pan/zoom).
+- **Key Features**:
+  - **Zone Optimization**: Initializes and renders MapLibre outside Angular's Zone (`runOutsideAngular`) to prevent excessive change detection cycles during high-frequency events like drag or zoom.
+  - **Signal Integration**: Observes `MapRenderingService.activeOverlay` via an effect (currently disabled for verification) to overlay custom SVG visualization layers.
+  - **Event Bus**: Listens to `MapControlService.zoomActions$` to support external UI zoom controls (e.g., sidebar buttons).
+  - **Interaction**: Configured with standard navigation controls (`dragPan`, `scrollZoom`, `boxZoom`, etc.) enabled.
+- **Config Interface**: None (Internal MapLibre Config).
+- **Has Config**: `false`
+
 ### MapSettingsComponent
 - **File**: `map-settings.component.ts`
 - **Description**: Contains floating controls for zooming and a settings popover. The popover includes theme selection (Light/Dark/System), a colorblind mode toggle, and an "About" section for the `reportNazis` platform.

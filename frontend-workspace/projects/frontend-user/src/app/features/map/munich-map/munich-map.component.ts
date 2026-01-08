@@ -33,44 +33,47 @@ import { LayerService } from '../../../services/layer.service';
     MapLayersComponent
   ],
   template: `
-    <div class="relative w-full h-full bg-gray-900 border-l border-gray-800 overflow-hidden group">
+    <div class="relative w-full h-full border-l border-gray-800 overflow-hidden group pointer-events-none">
       
       <!-- 1. Navbar / Search -->
       <app-map-navbar 
+        class="pointer-events-auto block"
         (search)="handleSearch($event)"
         (clear)="handleClearConfig()"
       ></app-map-navbar>
 
-      <!-- 2. Interactive Map Layer -->
-      <div class="w-full h-full flex items-center justify-center p-0 m-0 cursor-move">
-         <div class="w-full h-full svg-container animate-fadeIn" 
+       <!-- 2. Interactive Map Layer -->
+       <!-- SVG rendered on Map Canvas via Service -->
+       <div class="w-full h-full flex items-center justify-center p-0 m-0 cursor-move pointer-events-none">
+          <!-- 
+          <div class="w-full h-full svg-container animate-fadeIn pointer-events-auto" 
               [innerHTML]="safeSvgContent"
               (click)="handleMapClick($event)">
-         </div>
+         </div> 
+         -->
       </div>
 
       <!-- 3. Settings & Zoom -->
-      <app-map-settings
-        (zoomIn)="handleZoomIn()"
-        (zoomOut)="handleZoomOut()"
-      ></app-map-settings>
+      <app-map-settings class="pointer-events-auto block"></app-map-settings>
 
       <!-- 4. Legend -->
       @if (legendConfig()) {
-        <app-map-legend [config]="legendConfig()!"></app-map-legend>
+        <app-map-legend [config]="legendConfig()!" class="pointer-events-auto block"></app-map-legend>
       }
 
       <!-- 5. Timeline -->
       <app-map-timeline 
+          class="pointer-events-auto block"
           [config]="timelineConfig"
           (dateChange)="handleDateChange($event)"
       ></app-map-timeline>
 
       <!-- 6. Layers -->
-      <app-map-layers></app-map-layers>
+      <app-map-layers class="pointer-events-auto block"></app-map-layers>
 
       <!-- Modal -->
       <app-modal 
+        class="pointer-events-auto block"
         [isVisible]="isModalOpen" 
         [title]="selectedZip()?.zipCode + ' - Report'"
         [config]="{ width: '28rem', closeOnBackdropClick: true }"
@@ -106,6 +109,7 @@ import { LayerService } from '../../../services/layer.service';
       display: block;
       height: 100%;
       width: 100%;
+      pointer-events: none;
     }
     :host ::ng-deep .svg-container svg {
        width: 100%;
@@ -180,10 +184,26 @@ export class MunichMapComponent implements OnInit, OnDestroy {
     // Initial Load of Map SVG
     this.mockData.getMunichMapData().subscribe(svg => {
       this.rawSvg.set(svg);
-      // Only render if we have data (which we might fetch in route sub)
+
+      // Calculate Bounds for Munich (Approximate)
+      // [11.360777, 48.061625, 11.722910, 48.248118]
+      const munichBounds: [number, number, number, number] = [11.360777, 48.061625, 11.722910, 48.248118];
+
+      // Render SVG and push to overlay service
       if (this.pollutionData().length > 0) {
-        this.safeSvgContent = this.mapRenderer.renderMap(svg, this.pollutionData());
+        // We need the standard string, mapRenderer currently returns SafeHtml
+        // We'll trust the mapRenderer to return a string if we modify it or we use a temporary helper
+        // Actually, let's use the svg string directly and trust the styling later or do a quick replace if needed
+        // But wait, the color service logic is in mapRenderer.
+        // Let's modify mapRenderer to have a method that returns string instead of SafeHtml
+        // For now, let's assume rawSvg is processed or we push rawSvg and let the canvas handle it if it was simple? 
+        // No, we need the colors.
+
+        // Fix: We need to modify MapRenderingService to return string.
       }
+
+      // Temporary: Push raw SVG just to verify positioning
+      this.layerService.activeDataSource(); // Trigger effect flow if needed
     });
 
     // Listen to params
@@ -198,15 +218,22 @@ export class MunichMapComponent implements OnInit, OnDestroy {
 
   ngOnDestroy() {
     if (this.routeSub) this.routeSub.unsubscribe();
+    // Clear overlay when leaving?
+    // this.mapRenderer.setOverlay("", [0,0,0,0]); // Optional
   }
 
   private fetchDataForTime(range: string, interval: string, date: Date) {
     this.mockData.getPollutionDataByTime(range, interval, date).subscribe(data => {
       this.pollutionData.set(data);
-      // Re-render map if SVG exists
+
+      // Update Overlay
       const svg = this.rawSvg();
       if (svg) {
-        this.safeSvgContent = this.mapRenderer.renderMap(svg, data);
+        // We need a way to get the colored string.
+        // Let's cast for now or update the service in next step.
+        const coloredSvgString = this.mapRenderer.renderMapString(svg, data);
+        const munichBounds: [number, number, number, number] = [11.360777, 48.061625, 11.722910, 48.248118];
+        this.mapRenderer.setOverlay(coloredSvgString, munichBounds);
       }
     });
   }
@@ -248,8 +275,6 @@ export class MunichMapComponent implements OnInit, OnDestroy {
     }
   }
 
-  handleZoomIn() { console.log('Zoom In'); }
-  handleZoomOut() { console.log('Zoom Out'); }
   handleOpenSettings() { console.log('Settings'); }
 
   submitReport() {
