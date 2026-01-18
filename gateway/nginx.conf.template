@@ -12,11 +12,25 @@ http {
         ""      $request_id;
     }
 
+    # Rate limiting zone
+    limit_req_zone $binary_remote_addr zone=api:10m rate=10r/s;
+    limit_req_zone $binary_remote_addr zone=bff:10m rate=20r/s;
+
     server {
         listen 80;
 
-        # Add X-Trace-ID header to all responses for debugging
+        # Security Headers
         add_header X-Trace-ID $trace_id always;
+        add_header X-Frame-Options "DENY" always;
+        add_header X-Content-Type-Options "nosniff" always;
+        add_header X-XSS-Protection "1; mode=block" always;
+        add_header Referrer-Policy "strict-origin-when-cross-origin" always;
+        add_header Content-Security-Policy "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self';" always;
+
+        # Block suspicious patterns
+        location ~* (\.php|\.env|\.git|wp-admin|\.htaccess|\.bak|\.sql) {
+            return 444;
+        }
 
         # Frontend User App
         location / {
@@ -37,8 +51,26 @@ http {
             try_files $uri $uri/ /admin/index.html;
         }
 
+        # BFF Gateway API (Primary API entry point)
+        location /api/bff/ {
+            limit_req zone=bff burst=40 nodelay;
+            
+            proxy_pass http://gateway-bff:8000;
+            proxy_set_header X-Trace-ID $trace_id;
+            proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+            proxy_set_header X-Forwarded-Proto $scheme;
+            proxy_set_header Host $host;
+            
+            # Timeouts
+            proxy_connect_timeout 30s;
+            proxy_send_timeout 30s;
+            proxy_read_timeout 30s;
+        }
+
         # Management Service API
         location /api/mgmt/ {
+            limit_req zone=api burst=20 nodelay;
+            
             # Use strict variable for port
             proxy_pass http://management-service:${SERVICE_PORT};
             proxy_set_header X-Trace-ID $trace_id;
@@ -47,6 +79,8 @@ http {
 
         # Form Service API
         location /api/forms/ {
+            limit_req zone=api burst=20 nodelay;
+            
             proxy_pass http://form-service:${SERVICE_PORT};
             proxy_set_header X-Trace-ID $trace_id;
             proxy_set_header Host $host;
@@ -54,6 +88,8 @@ http {
 
         # Log Service API
         location /api/logs/ {
+            limit_req zone=api burst=20 nodelay;
+            
             proxy_pass http://log-service:${SERVICE_PORT};
             proxy_set_header X-Trace-ID $trace_id;
             proxy_set_header Host $host;
@@ -67,3 +103,4 @@ http {
         }
     }
 }
+

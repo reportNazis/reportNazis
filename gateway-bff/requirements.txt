@@ -1,0 +1,8 @@
+Django>=4.2
+djangorestframework>=3.14
+django-redis>=5.4
+PyJWT>=2.8
+cryptography>=41.0
+requests>=2.31
+visine-common
+pytest-django>=4.5

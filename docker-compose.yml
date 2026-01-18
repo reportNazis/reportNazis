@@ -1,5 +1,3 @@
-version: '3.8'
-
 services:
   # Builder Service to compile Angular
   frontend-builder:
@@ -174,14 +172,97 @@ services:
       dockerfile: ./log-service/Dockerfile
     environment:
       - PORT=${SERVICE_PORT}
+      - INTERNAL_SERVICE_TOKEN=${INTERNAL_SERVICE_TOKEN}
+    networks:
+      - internal
+    deploy:
+      replicas: 1
+
+  # --- BFF GATEWAY SERVICES ---
+
+  gateway-bff:
+    build:
+      context: .
+      dockerfile: ./gateway-bff/Dockerfile
+    ports:
+      - "8000:8000" # Direct access for development
+    environment:
+      - DJANGO_SECRET_KEY=${BFF_SECRET_KEY}
+      - DEBUG=${DEBUG:-false}
+      - BACKEND_URL=http://backend-mock:8001
+      - LOG_SERVICE_URL=http://log-service:${SERVICE_PORT}
+      - REDIS_URL=redis://redis:6379/0
+      - ZITADEL_ISSUER=http://zitadel:8080
+      - JWT_AUDIENCE=${JWT_AUDIENCE:-gateway-bff}
+      - JWKS_CACHE_TTL=${JWKS_CACHE_TTL:-3600}
+      - INTERNAL_SERVICE_TOKEN=${INTERNAL_SERVICE_TOKEN}
+      - CACHE_TTL_DEFAULT=${CACHE_TTL_DEFAULT:-300}
+      - UPSTREAM_TIMEOUT=${UPSTREAM_TIMEOUT:-30}
+    networks:
+      - dmz
+      - internal
+      - cache
+    # Security: Read-only filesystem
+    read_only: true
+    # Security: Non-root (defined in Dockerfile)
+    security_opt:
+      - no-new-privileges:true
+    depends_on:
+      - redis
+      - backend-mock
+      - log-service
+    deploy:
+      replicas: 1
+
+  backend-mock:
+    build:
+      context: .
+      dockerfile: ./backend-mock/Dockerfile
+    environment:
+      - DJANGO_SECRET_KEY=${BACKEND_MOCK_SECRET_KEY}
+      - INTERNAL_SERVICE_TOKEN=${INTERNAL_SERVICE_TOKEN}
+    networks:
+      - internal
+    # Security: Not exposed externally, only via internal network
+    expose:
+      - "8001"
+    # Security: Read-only filesystem
+    read_only: true
+    security_opt:
+      - no-new-privileges:true
+    deploy:
+      replicas: 1
+
+  redis:
+    image: redis:7-alpine
+    networks:
+      - cache
+    # Security: Not exposed externally
+    expose:
+      - "6379"
+    # Security: Read-only with data volume
+    read_only: true
+    volumes:
+      - redis-data:/data
+    command: redis-server --appendonly yes --maxmemory 256mb --maxmemory-policy allkeys-lru
     deploy:
       replicas: 1
 
 volumes:
   zitadel-data:
   app-db-data:
-  frontend-dist:
-    # Shared volume for frontend artifacts
+  frontend-dist: # Shared volume for frontend artifacts
+  redis-data:
+    # Redis persistence
 
 networks:
-  default:
+  default: # DMZ: Nginx <-> BFF Gateway (exposed to frontend layer)
+
+  dmz:
+    internal: false
+  # Internal: Backend services only (not exposed externally)
+  internal:
+    internal: true
+  # Cache: BFF <-> Redis only
+  cache:
+    internal: true
