@@ -60,6 +60,19 @@ class Document(models.Model):
         related_name='head_of_document'
     )
 
+    class Visibility(models.TextChoices):
+        PRIVATE = 'private', 'Only Author'
+        GROUP_INTERNAL = 'group_internal', 'Only Members of my Group'
+        INTERNAL = 'internal', 'All Members'
+        PUBLIC = 'public', 'Everyone accessing the app'
+
+    visibility = models.CharField(
+        max_length=10,
+        choices=Visibility.choices,
+        default=Visibility.INTERNAL,
+        db_index=True
+    )
+
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
@@ -94,19 +107,6 @@ class DocumentVersion(models.Model):
     )
 
     author_id = models.CharField(max_length=255)
-
-    class Visibility(models.TextChoices):
-        PRIVATE = 'private', 'Only Author'
-        GROUP_INTERNAL = 'group_internal', 'Only Members of my Group'
-        INTERNAL = 'internal', 'All Members'
-        PUBLIC = 'public', 'Everyone accessing the app'
-
-    visibility = models.CharField(
-        max_length=10,
-        choices=Visibility.choices,
-        default=Visibility.INTERNAL,
-        db_index=True
-    )
 
     class Meta: 
         ordering = ['-created_at']
