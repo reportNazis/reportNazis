@@ -26,7 +26,7 @@ services:
         condition: service_completed_successfully
       form-service:
         condition: service_started
-      management-service:
+      identity-service:
         condition: service_started
       log-service:
         condition: service_started
