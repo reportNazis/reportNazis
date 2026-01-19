@@ -1,0 +1,68 @@
+@startuml asset_service_flow
+!theme plain
+
+actor "Client" as Client
+participant "BFF Gateway" as BFF
+participant "Asset Service" as Asset
+database "MinIO" as MinIO
+
+== Upload Flow ==
+Client -> BFF: POST /api/assets (multipart)
+activate BFF
+BFF -> BFF: Validate JWT
+BFF -> Asset: POST /asset/upload\n+ X-Internal-Token\n+ X-Trace-ID
+activate Asset
+Asset -> Asset: Generate UUID
+Asset -> MinIO: PUT object (SSE-S3 encrypted)\n+ tag: status=temporary
+activate MinIO
+MinIO --> Asset: 200 OK
+deactivate MinIO
+Asset --> BFF: { "id": "uuid", "status": "temporary" }
+deactivate Asset
+BFF --> Client: 201 Created { "id": "uuid" }
+deactivate BFF
+
+== Confirmation Flow ==
+Client -> BFF: PUT /api/assets/{id}/confirm
+activate BFF
+BFF -> Asset: PUT /asset/confirm/{id}\n+ X-Internal-Token
+activate Asset
+Asset -> MinIO: Update tag: status=permanent
+MinIO --> Asset: 200 OK
+Asset --> BFF: { "status": "permanent" }
+deactivate Asset
+BFF --> Client: 200 OK
+deactivate BFF
+
+== Retrieval Flow ==
+Client -> BFF: GET /api/assets/{id}
+activate BFF
+BFF -> Asset: GET /asset/{id}\n+ X-Internal-Token
+activate Asset
+Asset -> MinIO: GET object (auto-decrypted)
+activate MinIO
+MinIO --> Asset: Binary data (decrypted)
+deactivate MinIO
+Asset --> BFF: Stream binary response
+deactivate Asset
+BFF --> Client: 200 OK (binary stream)
+deactivate BFF
+
+== Garbage Collection (Background) ==
+participant "GC Worker" as GC
+loop Every 24 hours
+    GC -> MinIO: List objects where\ntag=temporary AND age > 24h
+    activate MinIO
+    MinIO --> GC: [candidate_ids]
+    deactivate MinIO
+    loop For each candidate
+        GC -> MinIO: Re-check metadata (race prevention)
+        alt Still temporary
+            GC -> MinIO: DELETE object
+        else Now permanent
+            GC -> GC: Skip (was confirmed)
+        end
+    end
+end
+
+@enduml
