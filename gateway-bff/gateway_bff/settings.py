@@ -14,8 +14,7 @@ DEBUG = os.getenv('DEBUG', 'False').lower() == 'true'
 ALLOWED_HOSTS = os.getenv('ALLOWED_HOSTS', '*').split(',')
 
 # Service Discovery via Environment Variables
-BACKEND_URL = os.getenv('BACKEND_URL', 'http://backend-mock:8001')
-LOG_SERVICE_URL = os.getenv('LOG_SERVICE_URL', 'http://log-service:5000')
+LOG_SERVICE_URL = os.getenv('LOG_SERVICE_URL', 'http://log-service:8000')
 ZITADEL_ISSUER = os.getenv('ZITADEL_ISSUER', 'http://zitadel:8080')
 INTERNAL_SERVICE_TOKEN = os.getenv('INTERNAL_SERVICE_TOKEN', 'dev-internal-token')
 

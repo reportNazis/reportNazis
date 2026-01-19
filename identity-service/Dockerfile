@@ -13,11 +13,11 @@ COPY backend-common /app/backend-common
 RUN pip install /app/backend-common
 
 # Install Service Dependencies
-COPY management-service/requirements.txt /app/
+COPY identity-service/requirements.txt /app/
 RUN pip install -r requirements.txt
 
 # Copy Service Code
-COPY management-service /app
+COPY identity-service /app
 
 # Run Server
 CMD sh -c "python manage.py runserver 0.0.0.0:$PORT"

@@ -1,0 +1,15 @@
+# Frontend Workspace - Docker Compose Services
+# Included by main docker-compose.yml
+
+services:
+  frontend-builder:
+    build:
+      context: ..
+      dockerfile: ./frontend-workspace/Dockerfile
+    volumes:
+      - frontend-dist:/output
+    # Copy built artifacts from image (/app/dist) to volume (/output)
+    command: /bin/sh -c "cp -r /app/dist/* /output/"
+
+volumes:
+  frontend-dist:

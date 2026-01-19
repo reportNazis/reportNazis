@@ -1,12 +1,21 @@
-# Visine Sunflower - Project Structure
-
-```
 visine-sunflower/
+├── admin-backend-workspace/
+│   ├── asset-service/
+│   │   ├── app/
+│   │   ├── worker/
+│   │   ├── requirements.txt
+│   │   └── Dockerfile
+│   ├── management-service/
+│   │   ├── app/
+│   │   ├── worker/
+│   │   ├── requirements.txt
+│   │   └── Dockerfile
+│   └── Dockerfile
 ├── docs/
 │   ├── project_structure.md
 │   └── architecture.puml
 ├── docker-compose.yml
-├── gateway/
+├── reverse-proxy/
 │   └── nginx.conf
 ├── form-service/
 │   ├── src/
@@ -14,7 +23,7 @@ visine-sunflower/
 │   │   └── health.test.js
 │   ├── package.json
 │   └── jest.config.js
-├── management-service/
+├── identity-service/
 │   ├── src/
 │   ├── test/
 │   │   └── health.test.js

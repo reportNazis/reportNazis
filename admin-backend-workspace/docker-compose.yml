@@ -1,0 +1,95 @@
+# Admin Backend Workspace - Docker Compose Services
+# Included by main docker-compose.yml
+
+services:
+  # --- ASSET SERVICE ---
+
+  minio:
+    image: minio/minio:latest
+    command: server /data --console-address ":9001"
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD}
+      # Server-Side Encryption key (AES-256)
+      MINIO_KMS_SECRET_KEY: ${MINIO_KMS_SECRET_KEY}
+    volumes:
+      - minio-data:/data
+    networks:
+      - storage # Isolated: only asset-service can reach
+    # Security: Not exposed externally
+    expose:
+      - "9000"
+    healthcheck:
+      test: [ "CMD", "mc", "ready", "local" ]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+    deploy:
+      replicas: 1
+
+  asset-service:
+    build:
+      context: ..
+      dockerfile: ./admin-backend-workspace/asset-service/Dockerfile
+    environment:
+      - MINIO_ENDPOINT=minio:9000
+      - MINIO_ACCESS_KEY=${MINIO_ROOT_USER}
+      - MINIO_SECRET_KEY=${MINIO_ROOT_PASSWORD}
+      - MINIO_BUCKET=${MINIO_BUCKET:-assets}
+      - MINIO_SECURE=false
+      - ASSET_SERVICE_TOKEN=${ASSET_SERVICE_TOKEN}
+      - LOG_LEVEL=INFO
+    networks:
+      - internal # BFF can reach this service
+      - storage # Can reach MinIO
+    # Security: Not exposed externally, only via BFF
+    expose:
+      - "8002"
+    depends_on:
+      minio:
+        condition: service_healthy
+    # Security: Read-only filesystem
+    read_only: true
+    security_opt:
+      - no-new-privileges:true
+    deploy:
+      replicas: 1
+
+  asset-gc-worker:
+    build:
+      context: ..
+      dockerfile: ./admin-backend-workspace/asset-service/Dockerfile
+    command: [ "python", "-m", "worker.garbage_collector" ]
+    environment:
+      - MINIO_ENDPOINT=minio:9000
+      - MINIO_ACCESS_KEY=${MINIO_ROOT_USER}
+      - MINIO_SECRET_KEY=${MINIO_ROOT_PASSWORD}
+      - MINIO_BUCKET=${MINIO_BUCKET:-assets}
+      - MINIO_SECURE=false
+      - GC_INTERVAL_HOURS=${GC_INTERVAL_HOURS:-24}
+      - GC_MAX_AGE_HOURS=${GC_MAX_AGE_HOURS:-24}
+      - LOG_LEVEL=INFO
+    networks:
+      - storage # Only needs MinIO access
+    depends_on:
+      minio:
+        condition: service_healthy
+    # Security: Read-only filesystem
+    read_only: true
+    security_opt:
+      - no-new-privileges:true
+    deploy:
+      replicas: 1
+
+volumes:
+  minio-data:
+
+
+networks:
+  storage:
+    internal: true
+  internal:
+    internal: true
+  backend-network:
+    internal: true

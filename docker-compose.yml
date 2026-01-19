@@ -1,14 +1,12 @@
-services:
-  # Builder Service to compile Angular
-  frontend-builder:
-    build:
-      context: .
-      dockerfile: ./frontend-workspace/Dockerfile
-    volumes:
-      - frontend-dist:/output
-    # Copy built artifacts from image (/app/dist) to volume (/output)
-    command: /bin/sh -c "cp -r /app/dist/* /output/"
+# Visine Sunflower - Main Docker Compose
+# Includes workspace-specific compose files for frontend and admin-backend
 
+include:
+  - path: ./frontend-workspace/docker-compose.yml
+  - path: ./admin-backend-workspace/docker-compose.yml
+
+services:
+  # --- REVERSE PROXY ---
   reverse-proxy:
     image: nginx:alpine
     ports:
@@ -24,8 +22,6 @@ services:
     depends_on:
       frontend-builder:
         condition: service_completed_successfully
-      form-service:
-        condition: service_started
       identity-service:
         condition: service_started
       log-service:
@@ -34,6 +30,7 @@ services:
         condition: service_started
 
   # --- ZITADEL SERVICES ---
+
   zitadel:
     restart: unless-stopped
     image: ghcr.io/zitadel/zitadel:latest
@@ -66,7 +63,6 @@ services:
       ZITADEL_OIDC_DEFAULTLOGINURLV2: http://localhost:${ZITADEL_LOGIN_PORT}/ui/v2/login/login?authRequest=
       ZITADEL_OIDC_DEFAULTLOGOUTURLV2: http://localhost:${ZITADEL_LOGIN_PORT}/ui/v2/login/logout?post_logout_redirect=
       ZITADEL_SAML_DEFAULTLOGINURLV2: http://localhost:${ZITADEL_LOGIN_PORT}/ui/v2/login/login?samlRequest=
-
     healthcheck:
       test: [ "CMD", "/app/zitadel", "ready" ]
       interval: 10s
@@ -119,50 +115,47 @@ services:
 
   # --- APPLICATION SERVICES ---
 
-  app-db:
+  app-postgres:
     image: postgres:15-alpine
     environment:
-      - POSTGRES_USER=${APP_DB_USER}
-      - POSTGRES_PASSWORD=${APP_DB_PASSWORD}
-      - POSTGRES_DB=${APP_DB_NAME}
+      - POSTGRES_USER=${POSTGRES_ADMIN_USER:-postgres}
+      - POSTGRES_PASSWORD=${POSTGRES_ADMIN_PASSWORD}
+      - POSTGRES_MULTIPLE_DATABASES=${IDENTITY_DB_NAME}:${IDENTITY_DB_USER}:${IDENTITY_DB_PASSWORD},${BFF_DB_NAME}:${BFF_DB_USER}:${BFF_DB_PASSWORD},${LOG_DB_NAME}:${LOG_DB_USER}:${LOG_DB_PASSWORD}
     volumes:
-      - app-db-data:/var/lib/postgresql/data
-    # Internal only
+      - app-postgres-data:/var/lib/postgresql/data
+      - ./infra/db-init:/docker-entrypoint-initdb.d:ro
+    networks:
+      - backend-network
     expose:
       - "5432"
-
-  form-service:
-    build:
-      context: .
-      dockerfile: ./form-service/Dockerfile
-    environment:
-      - PORT=${SERVICE_PORT}
-      - DB_HOST=${APP_DB_HOST}
-      - DB_NAME=${APP_DB_NAME}
-      - DB_USER=${APP_DB_USER}
-      - DB_PASSWORD=${APP_DB_PASSWORD}
-    depends_on:
-      - app-db
-    deploy:
-      replicas: 1
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U ${POSTGRES_ADMIN_USER:-postgres}" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 15s
 
   identity-service:
     build:
       context: .
-      dockerfile: ./identity-service-service/Dockerfile
+      dockerfile: ./identity-service/Dockerfile
     environment:
       - PORT=${SERVICE_PORT}
-      - DB_HOST=${APP_DB_HOST}
-      - DB_NAME=${APP_DB_NAME}
-      - DB_USER=${APP_DB_USER}
-      - DB_PASSWORD=${APP_DB_PASSWORD}
+      - DB_HOST=app-postgres
+      - DB_NAME=${IDENTITY_DB_NAME}
+      - DB_USER=${IDENTITY_DB_USER}
+      - DB_PASSWORD=${IDENTITY_DB_PASSWORD}
       - ZITADEL_ISSUER=http://zitadel:8080
       - ZITADEL_SERVICE_TOKEN_PATH=/app/login-client.pat
     volumes:
       - ./login-client.pat:/app/login-client.pat:ro
+    networks:
+      - backend-network
     depends_on:
-      - app-db
-      - zitadel
+      app-postgres:
+        condition: service_healthy
+      zitadel:
+        condition: service_healthy
     deploy:
       replicas: 1
 
@@ -172,9 +165,17 @@ services:
       dockerfile: ./log-service/Dockerfile
     environment:
       - PORT=${SERVICE_PORT}
+      - DB_HOST=app-postgres
+      - DB_NAME=${LOG_DB_NAME}
+      - DB_USER=${LOG_DB_USER}
+      - DB_PASSWORD=${LOG_DB_PASSWORD}
       - INTERNAL_SERVICE_TOKEN=${INTERNAL_SERVICE_TOKEN}
     networks:
       - internal
+      - backend-network
+    depends_on:
+      app-postgres:
+        condition: service_healthy
     deploy:
       replicas: 1
 
@@ -189,7 +190,6 @@ services:
     environment:
       - DJANGO_SECRET_KEY=${BFF_SECRET_KEY}
       - DEBUG=${DEBUG:-false}
-      - BACKEND_URL=http://backend-mock:8001
       - LOG_SERVICE_URL=http://log-service:${SERVICE_PORT}
       - REDIS_URL=redis://redis:6379/0
       - ZITADEL_ISSUER=http://zitadel:8080
@@ -209,27 +209,7 @@ services:
       - no-new-privileges:true
     depends_on:
       - redis
-      - backend-mock
       - log-service
-    deploy:
-      replicas: 1
-
-  backend-mock:
-    build:
-      context: .
-      dockerfile: ./backend-mock/Dockerfile
-    environment:
-      - DJANGO_SECRET_KEY=${BACKEND_MOCK_SECRET_KEY}
-      - INTERNAL_SERVICE_TOKEN=${INTERNAL_SERVICE_TOKEN}
-    networks:
-      - internal
-    # Security: Not exposed externally, only via internal network
-    expose:
-      - "8001"
-    # Security: Read-only filesystem
-    read_only: true
-    security_opt:
-      - no-new-privileges:true
     deploy:
       replicas: 1
 
@@ -248,105 +228,20 @@ services:
     deploy:
       replicas: 1
 
-  # --- ASSET SERVICE ---
-
-  minio:
-    image: minio/minio:latest
-    command: server /data --console-address ":9001"
-    environment:
-      MINIO_ROOT_USER: ${MINIO_ROOT_USER}
-      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD}
-      # Server-Side Encryption key (AES-256)
-      MINIO_KMS_SECRET_KEY: ${MINIO_KMS_SECRET_KEY}
-    volumes:
-      - minio-data:/data
-    networks:
-      - storage # Isolated: only asset-service can reach
-    # Security: Not exposed externally
-    expose:
-      - "9000"
-    healthcheck:
-      test: [ "CMD", "mc", "ready", "local" ]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-      start_period: 10s
-    deploy:
-      replicas: 1
-
-  asset-service:
-    build:
-      context: .
-      dockerfile: ./admin-backend-workspace/asset-service/Dockerfile
-    environment:
-      - MINIO_ENDPOINT=minio:9000
-      - MINIO_ACCESS_KEY=${MINIO_ROOT_USER}
-      - MINIO_SECRET_KEY=${MINIO_ROOT_PASSWORD}
-      - MINIO_BUCKET=${MINIO_BUCKET:-assets}
-      - MINIO_SECURE=false
-      - ASSET_SERVICE_TOKEN=${ASSET_SERVICE_TOKEN}
-      - LOG_LEVEL=INFO
-    networks:
-      - internal # BFF can reach this service
-      - storage # Can reach MinIO
-    # Security: Not exposed externally, only via BFF
-    expose:
-      - "8002"
-    depends_on:
-      minio:
-        condition: service_healthy
-    # Security: Read-only filesystem
-    read_only: true
-    security_opt:
-      - no-new-privileges:true
-    deploy:
-      replicas: 1
-
-  asset-gc-worker:
-    build:
-      context: .
-      dockerfile: ./admin-backend-workspace/asset-service/Dockerfile
-    command: [ "python", "-m", "worker.garbage_collector" ]
-    environment:
-      - MINIO_ENDPOINT=minio:9000
-      - MINIO_ACCESS_KEY=${MINIO_ROOT_USER}
-      - MINIO_SECRET_KEY=${MINIO_ROOT_PASSWORD}
-      - MINIO_BUCKET=${MINIO_BUCKET:-assets}
-      - MINIO_SECURE=false
-      - GC_INTERVAL_HOURS=${GC_INTERVAL_HOURS:-24}
-      - GC_MAX_AGE_HOURS=${GC_MAX_AGE_HOURS:-24}
-      - LOG_LEVEL=INFO
-    networks:
-      - storage # Only needs MinIO access
-    depends_on:
-      minio:
-        condition: service_healthy
-    # Security: Read-only filesystem
-    read_only: true
-    security_opt:
-      - no-new-privileges:true
-    deploy:
-      replicas: 1
-
 volumes:
   zitadel-data:
-  app-db-data:
-  frontend-dist: # Shared volume for frontend artifacts
-  redis-data: # Redis persistence
-  minio-data:
-    # MinIO asset storage
+  app-postgres-data:
+  redis-data:
+
 
 networks:
   default: # DMZ: Nginx <-> BFF Gateway (exposed to frontend layer)
 
   dmz:
     internal: false
-  # Internal: Backend services only (not exposed externally)
-  internal:
-    internal: true
   # Cache: BFF <-> Redis only
   cache:
     internal: true
-  # Storage: Asset Service <-> MinIO only (Secure isolation)
-  storage:
+  # Backend: Service <-> PostgreSQL communication
+  backend-network:
     internal: true
