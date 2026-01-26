@@ -13,7 +13,7 @@ INSTALLED_APPS = [
     'django.contrib.contenttypes',
     'rest_framework',
     'visine_common',
-    'mgmt_app',
+    'identity_app',
 ]
 
 MIDDLEWARE = [
@@ -23,7 +23,7 @@ MIDDLEWARE = [
     'visine_common.middleware.TracingMiddleware',
 ]
 
-ROOT_URLCONF = 'management_service.urls'
+ROOT_URLCONF = 'identity_service.urls'
 
 DB_HOST = os.environ.get('DB_HOST', 'postgres')
 DB_NAME = os.environ.get('DB_NAME', 'visine_db')

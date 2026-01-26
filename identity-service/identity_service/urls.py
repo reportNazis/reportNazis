@@ -2,5 +2,5 @@ from django.urls import path, include
 
 
 urlpatterns = [
-    path('api/mgmt/', include('mgmt_app.urls')),
+    path('api/identity/', include('identity_app.urls')),
 ]

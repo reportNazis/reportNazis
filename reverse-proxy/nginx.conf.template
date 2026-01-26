@@ -35,7 +35,7 @@ http {
         # Frontend User App
         location / {
             # Match the artifact folder name: frontend-user
-            root /usr/share/nginx/html/frontend-user;
+            root /usr/share/nginx/html/user;
             # Fallback to index.html
             try_files $uri $uri/ /index.html;
         }
@@ -46,8 +46,7 @@ http {
         }
 
         location /admin/ {
-            # Match the artifact folder name: frontend-admin
-            alias /usr/share/nginx/html/frontend-admin/;
+            alias /usr/share/nginx/html/admin/;
             try_files $uri $uri/ /admin/index.html;
         }
 
@@ -67,21 +66,12 @@ http {
             proxy_read_timeout 30s;
         }
 
-        # Management Service API
-        location /api/mgmt/ {
+        # Identity Service API
+        location /api/identity/ {
             limit_req zone=api burst=20 nodelay;
             
             # Use strict variable for port
-            proxy_pass http://management-service:${SERVICE_PORT};
-            proxy_set_header X-Trace-ID $trace_id;
-            proxy_set_header Host $host;
-        }
-
-        # Form Service API
-        location /api/forms/ {
-            limit_req zone=api burst=20 nodelay;
-            
-            proxy_pass http://form-service:${SERVICE_PORT};
+            proxy_pass http://identity-service:${SERVICE_PORT};
             proxy_set_header X-Trace-ID $trace_id;
             proxy_set_header Host $host;
         }

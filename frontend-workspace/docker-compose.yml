@@ -5,7 +5,7 @@ services:
   frontend-builder:
     build:
       context: ..
-      dockerfile: ./frontend-workspace/Dockerfile
+      dockerfile: frontend-workspace/Dockerfile
     volumes:
       - frontend-dist:/output
     # Copy built artifacts from image (/app/dist) to volume (/output)
